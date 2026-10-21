@@ -225,7 +225,11 @@ const L = {
 	resolveDefault: function(p, d) { return p; }
 };
 
-global.window = { addEventListener: function() {} };
+global.window = {
+	addEventListener: function() {},
+	setTimeout: function(fn, ms) { return setTimeout(fn, ms); },
+	clearTimeout: function(id) { return clearTimeout(id); }
+};
 global._ = function(s) { return s; };
 global.E = E;
 global.document = {

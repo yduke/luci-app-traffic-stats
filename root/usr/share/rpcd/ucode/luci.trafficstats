@@ -15,6 +15,8 @@
 //   history({ range })                 -> traffic series of the given range
 //   config()                           -> current configuration
 //   setconfig({ ... })                 -> update the configuration
+//   service({ action })                -> start / stop / restart the collector
+//   reset()                            -> clear the collected statistics
 //
 
 'use strict';
@@ -26,6 +28,7 @@ const CONFIG_NAME = 'traffic-stats';
 const RUNTIME_DIR = '/var/lib/traffic-stats';
 const HISTORY_DIR = '/etc/traffic-stats';
 const LIVE_FILE = RUNTIME_DIR + '/live.json';
+const INIT_SCRIPT = '/etc/init.d/traffic-stats';
 
 const RANGES = {
 	'24h': { seconds: 86400,        devices: 'device_hours.tsv', series: 'minutes.tsv', step: 60 },
@@ -295,11 +298,33 @@ function config_get() {
 	return result;
 }
 
+/*
+ * Start, stop or restart the collector.
+ */
+function service_control(action) {
+	if (action != 'start' && action != 'stop' && action != 'restart')
+		return { result: -1, output: 'invalid action: ' + action };
+
+	let proc = popen(sprintf('%s %s 2>&1', INIT_SCRIPT, action));
+	let output = '';
+
+	if (proc != null) {
+		output = proc.read('all');
+		proc.close();
+	}
+
+	return { result: 0, action: action, output: output };
+}
+
 const methods = {
 	overview: {
 		call: function(request) {
 			let live = read_json(LIVE_FILE);
 			let result = {};
+
+			/* the collector is running when the state file is up to date */
+			result.collector = (live != null && (now() - (+live.ts ?? 0)) <= 8)
+				? 'running' : 'stopped';
 
 			if (live == null) {
 				result.available = false;
@@ -467,7 +492,27 @@ const methods = {
 
 	restart: {
 		call: function(request) {
-			let proc = popen('/etc/init.d/traffic-stats restart 2>&1');
+			return service_control('restart');
+		}
+	},
+
+	service: {
+		args: { action: 'restart' },
+		call: function(request) {
+			return service_control(request.args?.action ?? 'restart');
+		}
+	},
+
+	reset: {
+		call: function(request) {
+			/*
+			 * Remove the collected statistics and start the collector
+			 * again, the counters begin at zero.
+			 */
+			let cmd = sprintf('rm -f %s/*.tsv %s/live.json %s/*.tsv; %s restart',
+				RUNTIME_DIR, RUNTIME_DIR, HISTORY_DIR, INIT_SCRIPT);
+
+			let proc = popen(cmd);
 			let output = '';
 
 			if (proc != null) {

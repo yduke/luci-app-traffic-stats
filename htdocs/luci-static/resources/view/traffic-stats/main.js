@@ -39,6 +39,19 @@ var callRestart = rpc.declare({
 	expect: { '': {} }
 });
 
+var callService = rpc.declare({
+	object: 'luci.trafficstats',
+	method: 'service',
+	params: [ 'action' ],
+	expect: { '': {} }
+});
+
+var callReset = rpc.declare({
+	object: 'luci.trafficstats',
+	method: 'reset',
+	expect: { '': {} }
+});
+
 var callNetworkDevices = rpc.declare({
 	object: 'network.device',
 	method: 'status',
@@ -46,6 +59,7 @@ var callNetworkDevices = rpc.declare({
 });
 
 var POLL_INTERVAL = 2;
+var POLL_IDLE_INTERVAL = 15;
 var LIVE_SAMPLES = 150;
 
 var RANGES = [
@@ -520,26 +534,90 @@ return view.extend({
 				_('The settings could not be loaded.')));
 		});
 
-		var restartButton = E('button', {
-			'class': 'btn cbi-button cbi-button-action',
-			'type': 'button',
-			click: function() {
-				restartButton.setAttribute('disabled', 'disabled');
+		/* ---------------- collector control ---------------- */
 
-				callRestart().then(function() {
-					restartButton.removeAttribute('disabled');
-					refreshOverview();
-				}).catch(function() {
-					restartButton.removeAttribute('disabled');
-				});
+		var collectorState = 'running';
+
+		function collectorButton(label, cls, action) {
+			var button = E('button', {
+				'class': 'btn cbi-button ' + cls,
+				'type': 'button',
+				click: function() {
+					button.setAttribute('disabled', 'disabled');
+
+					callService(action).then(function() {
+						button.removeAttribute('disabled');
+
+						/* the state is known before the next poll */
+						collectorState = (action == 'stop') ? 'stopped' : 'running';
+						renderCollectorButtons();
+						refreshOverview();
+					}).catch(function(err) {
+						button.removeAttribute('disabled');
+						setError(err);
+					});
+				}
+			}, label);
+
+			return button;
+		}
+
+		function resetButton() {
+			return E('button', {
+				'class': 'btn cbi-button cbi-button-negative',
+				'type': 'button',
+				click: function() {
+					ui.showModal(_('Reset statistics'), [
+						E('p', {}, _('All collected statistics will be deleted and the counting starts from zero again.')),
+						E('div', { 'class': 'right' }, [
+							E('button', {
+								'class': 'btn cbi-button',
+								'click': ui.hideModal
+							}, _('Cancel')),
+							' ',
+							E('button', {
+								'class': 'btn cbi-button cbi-button-negative important',
+								'click': function() {
+									ui.hideModal();
+									callReset().then(function() {
+										refreshOverview();
+										refreshDevices();
+										refreshDestinations();
+										refreshHistory();
+									}).catch(function(err) {
+										setError(err);
+									});
+								}
+							}, _('Reset statistics'))
+						])
+					]);
+				}
+			}, _('Reset statistics'));
+		}
+
+		var collectorButtons = E('div', { 'class': 'ts-button-row' });
+
+		function renderCollectorButtons() {
+			collectorButtons.innerHTML = '';
+
+			if (collectorState == 'running') {
+				collectorButtons.appendChild(collectorButton(_('Restart collector'),
+					'cbi-button-action', 'restart'));
+				collectorButtons.appendChild(collectorButton(_('Stop collector'),
+					'cbi-button', 'stop'));
+			} else {
+				collectorButtons.appendChild(collectorButton(_('Start collector'),
+					'cbi-button-action', 'start'));
 			}
-		}, _('Restart collector'));
+
+			collectorButtons.appendChild(resetButton());
+		}
 
 		paneMap.settings.appendChild(E('div', { 'class': 'ts-card' }, [
 			E('div', { 'class': 'ts-card-title' }, _('Collector')),
 			E('div', { 'class': 'ts-card-desc' },
-				_('The collector has to be restarted after the settings were changed.')),
-			E('div', { 'class': 'ts-button-row' }, restartButton)
+				_('The collector has to be restarted after the settings were changed. A stopped collector does not use any CPU time, the statistics of the last period are still shown.')),
+			collectorButtons
 		]));
 
 		/* ---------------- range selectors ---------------- */
@@ -605,6 +683,18 @@ return view.extend({
 				return;
 
 			state.live = live;
+
+			collectorState = live.collector || 'running';
+			renderCollectorButtons();
+
+			/* slow the page down when the collector is stopped */
+			if (collectorState != state.collector) {
+				state.collector = collectorState;
+				window.setTimeout(function() {
+					setPollInterval(collectorState == 'running'
+						? POLL_INTERVAL : POLL_IDLE_INTERVAL);
+				}, 0);
+			}
 
 			var wan = live.wan || {};
 			var down = Number(wan.down_rate) || 0;
@@ -681,7 +771,8 @@ return view.extend({
 				})
 			));
 
-			statusText.textContent = _('Collector running');
+			statusText.textContent = (collectorState == 'running')
+				? _('Collector running') : _('Collector stopped');
 			infoBox.textContent = _('Uptime') + ': ' + formatUptime(live.uptime) + '  ·  ' +
 				_('Interface') + ': ' + ((live.interfaces && live.interfaces.lan) || []).join(', ');
 		}
@@ -848,9 +939,30 @@ return view.extend({
 
 		/* ---------------- polling ---------------- */
 
-		poll.add(function() {
-			return refreshOverview();
-		}, POLL_INTERVAL);
+		/*
+		 * A stopped collector does not need to be polled every second,
+		 * the page slows down as well.
+		 */
+		var pollEntry = null;
+		var pollInterval = 0;
+
+		function setPollInterval(interval) {
+			if (pollInterval == interval)
+				return;
+
+			pollInterval = interval;
+
+			if (pollEntry != null) {
+				poll.remove(pollEntry);
+				pollEntry = null;
+			}
+
+			pollEntry = poll.add(function() {
+				return refreshOverview();
+			}, interval);
+		}
+
+		setPollInterval(POLL_INTERVAL);
 
 		selectTab('overview');
 		refreshOverview();
@@ -860,7 +972,23 @@ return view.extend({
 		this.refreshDevices = refreshDevices;
 		this.refreshDestinations = refreshDestinations;
 		this.refreshHistory = refreshHistory;
+		this.refreshOverview = refreshOverview;
 
 		return container;
+	},
+
+	/*
+	 * The reset button of the page clears the collected statistics, the
+	 * counting starts from zero again.
+	 */
+	handleReset: function() {
+		var self = this;
+
+		return callReset().then(function() {
+			self.refreshOverview();
+			self.refreshDevices();
+			self.refreshDestinations();
+			self.refreshHistory();
+		});
 	}
 });

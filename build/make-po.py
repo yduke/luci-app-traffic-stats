@@ -14,6 +14,13 @@ TRANSLATIONS = {
     "Also account for the traffic between the devices of the local network.":
         "同时统计内网设备之间的流量。",
     "Collected by the collector": "采集器统计",
+    "The collector has to be restarted after the settings were changed. A stopped collector does not use any CPU time, the statistics of the last period are still shown.": "修改设置后需要重启采集器。停止采集器后不再占用 CPU，上一个周期的统计结果仍然保留。",
+    "All collected statistics will be deleted and the counting starts from zero again.": "所有已收集的统计数据将被删除，统计将重新从头开始。",
+    "Cancel": "取消",
+    "Collector stopped": "采集器已停止",
+    "Reset statistics": "统计归零",
+    "Start collector": "启动采集器",
+    "Stop collector": "停止采集器",
     "Collected packets": "已收集数据包",
     "Collector": "采集器",
     "Collector is not running": "采集器未运行",

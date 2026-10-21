@@ -10,7 +10,7 @@
 		},
 		"write": {
 			"ubus": {
-				"luci.trafficstats": [ "setconfig", "restart" ]
+				"luci.trafficstats": [ "setconfig", "restart", "service", "reset" ]
 			},
 			"uci": [ "traffic-stats" ]
 		}
