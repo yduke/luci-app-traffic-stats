@@ -49,10 +49,10 @@ The build produces two files, they belong together — the application
 including the Chinese translation, in the format of the package manager of
 the router:
 
-| File | Package manager | Content |
-| ---- | --------------- | ------- |
-| `luci-app-traffic-stats_1.0.0-r1_aarch64_cortex-a53.ipk` | opkg | the application with the Chinese translation |
-| `luci-app-traffic-stats-1.0.0-r1.apk` | apk | the application with the Chinese translation |
+| File                                                     | Package manager | Content                                      |
+| -------------------------------------------------------- | --------------- | -------------------------------------------- |
+| `luci-app-traffic-stats_1.0.0-r1_aarch64_cortex-a53.ipk` | opkg            | the application with the Chinese translation |
+| `luci-app-traffic-stats-1.0.0-r1.apk`                    | apk             | the application with the Chinese translation |
 
 The `.ipk` and the `.apk` contain exactly the same files, they only differ
 in the container format. Install the one that matches the router.
@@ -85,16 +85,16 @@ Statistics*.
 
 The settings are stored in `/etc/config/traffic-stats`:
 
-| Option | Description |
-| ------ | ----------- |
-| `lan_interfaces` | Interfaces that face the local network, the traffic of every device is attributed here. |
-| `wan_interfaces` | Interfaces that face the internet, they provide the total traffic volume and the destination statistics. |
-| `stats_iface` | Interface whose byte counters are shown as the total traffic of the internet connection. |
-| `sample_interval` | Length of a sampling interval in seconds. |
-| `dns_ttl` | Number of seconds a learned domain name is kept. |
-| `count_internal` | Also count the traffic between the devices of the local network. |
-| `history_days` | Number of days the daily statistics are kept on the flash memory. |
-| `alias` | Optional friendly name for a device, in the form `mac address=name`. |
+| Option            | Description                                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------------------------- |
+| `lan_interfaces`  | Interfaces that face the local network, the traffic of every device is attributed here.                  |
+| `wan_interfaces`  | Interfaces that face the internet, they provide the total traffic volume and the destination statistics. |
+| `stats_iface`     | Interface whose byte counters are shown as the total traffic of the internet connection.                 |
+| `sample_interval` | Length of a sampling interval in seconds.                                                                |
+| `dns_ttl`         | Number of seconds a learned domain name is kept.                                                         |
+| `count_internal`  | Also count the traffic between the devices of the local network.                                         |
+| `history_days`    | Number of days the daily statistics are kept on the flash memory.                                        |
+| `alias`           | Optional friendly name for a device, in the form `mac address=name`.                                     |
 
 The interfaces are detected automatically during the installation, the
 values can be corrected in the settings of the application.
