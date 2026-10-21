@@ -128,6 +128,23 @@ LuCI modules:
 node build/view-smoke-test.js
 ```
 
+The test renders the view, runs the polling callback, checks the status
+bar of the page and verifies that the charts contain their series. The
+output of a real router can be used as input:
+
+```sh
+ssh root@192.168.2.1 'ubus call luci.trafficstats overview' > overview.json
+node build/view-smoke-test.js overview.json
+```
+
+To look at the page in a browser without a login, a small proxy can be
+used that adds the session cookie of the router to every request:
+
+```sh
+node build/session-proxy.js <session-id> 8099
+chromium --headless=new --dump-dom http://127.0.0.1:8099/cgi-bin/luci/admin/status/traffic-stats
+```
+
 ## Layout of the sources
 
 ```
@@ -153,6 +170,10 @@ htdocs/                  the LuCI application
   luci-static/resources/traffic-stats/traffic-stats.css
 po/                      translations
 build/                   build and test scripts
+  build-packages.sh       builds the ipk and the apk package
+  make-po.py              creates the translated po file
+  view-smoke-test.js      renders the view and checks the result
+  session-proxy.js       adds the session cookie for a browser test
 ```
 
 ## License
