@@ -17,6 +17,10 @@ SRCS = main.c capture.c hash.c local.c dns.c store.c json.c util.c
 OBJS = $(SRCS:.c=.o)
 BINARY = traffic-stats
 
+# the Chinese translation is part of the application package
+PO_FILE = $(CURDIR)/../i18n/zh_Hans/traffic-stats.po
+LMO_DIR = $(DESTDIR)/usr/lib/lua/luci/i18n
+
 .PHONY: all compile install clean
 
 all: compile
@@ -32,6 +36,8 @@ $(BINARY): $(OBJS)
 install: $(BINARY)
 	$(INSTALL) -d $(DESTDIR)/usr/libexec/traffic-stats
 	$(INSTALL) -m 0755 $(BINARY) $(DESTDIR)/usr/libexec/traffic-stats/traffic-stats
+	$(INSTALL) -d $(LMO_DIR)
+	po2lmo $(PO_FILE) $(LMO_DIR)/traffic-stats.zh-cn.lmo
 
 clean:
 	rm -f $(OBJS) $(BINARY)

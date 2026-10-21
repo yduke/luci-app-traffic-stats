@@ -43,29 +43,24 @@ table, they are not affected by the hardware offloading of the firewall.
 
 ## Installation
 
-The build produces four files, but only **two of them belong together** —
-one package of the application and one translation package, each in the
-format of the package manager of the router:
+The build produces two files, they belong together — the application
+including the Chinese translation, in the format of the package manager of
+the router:
 
 | File | Package manager | Content |
 | ---- | --------------- | ------- |
-| `luci-app-traffic-stats_1.0.0-r1_aarch64_cortex-a53.ipk` | opkg | the application |
-| `luci-app-traffic-stats-1.0.0-r1.apk` | apk | the application |
-| `luci-i18n-traffic-stats-zh-cn_..._all.ipk` | opkg | the Chinese translation |
-| `luci-i18n-traffic-stats-zh-cn-....apk` | apk | the Chinese translation |
+| `luci-app-traffic-stats_1.0.0-r1_aarch64_cortex-a53.ipk` | opkg | the application with the Chinese translation |
+| `luci-app-traffic-stats-1.0.0-r1.apk` | apk | the application with the Chinese translation |
 
-The `.ipk` and the `.apk` of a row contain exactly the same files, they
-only differ in the container format. Install the pair that matches the
-router, never both.
+The `.ipk` and the `.apk` contain exactly the same files, they only differ
+in the container format. Install the one that matches the router.
 
 ```sh
 # opkg based routers (OpenWrt up to 25.12 with opkg, most vendor builds)
 opkg install luci-app-traffic-stats_1.0.0-r1_aarch64_cortex-a53.ipk
-opkg install luci-i18n-traffic-stats-zh-cn_26.294.33994~502d989_all.ipk
 
 # apk based routers (OpenWrt 25.12 and newer)
 apk add luci-app-traffic-stats-1.0.0-r1.apk
-apk add luci-i18n-traffic-stats-zh-cn-26.294.33994~502d989.apk
 ```
 
 ### Language
@@ -74,13 +69,12 @@ The application has no language setting of its own, it follows the
 language of the LuCI interface:
 
 * the strings of the interface are written in English,
-* the Chinese translation is a separate package, LuCI loads it when the
-  interface language is *简体中文*,
+* the Chinese translation is compiled into the package, LuCI loads it when
+  the interface language is *简体中文*,
 * with any other interface language the English strings are shown.
 
-So the Chinese package is optional, the application is fully functional
-without it. The language is changed in *System -> System -> Language* and
-takes effect after a reload of the page.
+The language is changed in *System -> System -> Language* and takes effect
+after a reload of the page.
 
 After the installation the application is available at *Status -> Traffic
 Statistics*.
@@ -127,13 +121,13 @@ The translation template is generated with the script of the LuCI
 repository:
 
 ```sh
-perl <luci>/build/i18n-scan.pl . > po/templates/traffic-stats.pot
+perl <luci>/build/i18n-scan.pl . > i18n/templates/traffic-stats.pot
 ```
 
 The Chinese translation is created with:
 
 ```sh
-python3 build/make-po.py po/templates/traffic-stats.pot po/zh_Hans/traffic-stats.po zh_Hans
+python3 build/make-po.py i18n/templates/traffic-stats.pot i18n/zh_Hans/traffic-stats.po zh_Hans
 ```
 
 ### Tests
@@ -185,7 +179,7 @@ root/                    files that are installed on the router
 htdocs/                  the LuCI application
   luci-static/resources/view/traffic-stats/main.js
   luci-static/resources/traffic-stats/traffic-stats.css
-po/                      translations
+i18n/                    translations, compiled into the package
 build/                   build and test scripts
   build-packages.sh       builds the ipk and the apk package
   make-po.py              creates the translated po file

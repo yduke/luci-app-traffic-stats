@@ -32,6 +32,10 @@ LUCI_MINIFY_CSS:=0
 LUCI_URL:=https://github.com/openwrt/luci
 LUCI_MAINTAINER:=luci-app-traffic-stats contributors
 
+# the Chinese translation is part of this package, the separate
+# translation package of the LuCI build system is not used
+PKG_BUILD_DEPENDS:=luci-base
+
 define Package/$(PKG_NAME)/conffiles
 /etc/config/traffic-stats
 endef
@@ -52,6 +56,12 @@ define Package/$(PKG_NAME)/postinst
 }
 
 exit 0
+endef
+
+# the translations are not shipped as a separate package, they are
+# compiled into the application package instead
+define Build/Prepare/luci-app-traffic-stats
+	$(CP) ./i18n $(PKG_BUILD_DIR)/
 endef
 
 include $(TOPDIR)/feeds/luci/luci.mk

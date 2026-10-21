@@ -41,7 +41,7 @@ mkdir -p "$OUT_DIR"
 rm -rf "$SDK_DIR/package/$PACKAGE"
 mkdir -p "$SDK_DIR/package/$PACKAGE"
 
-for item in Makefile LICENSE src root htdocs po; do
+for item in Makefile LICENSE src root htdocs i18n; do
 	if [ -e "$SRC_DIR/$item" ]; then
 		cp -a "$SRC_DIR/$item" "$SDK_DIR/package/$PACKAGE/"
 	fi
