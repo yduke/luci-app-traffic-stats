@@ -1,112 +1,105 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:49
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:55
 msgid "1 year"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:46
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:52
 msgid "24 hours"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:48
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:54
 msgid "30 days"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:47
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:53
 msgid "7 days"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:660
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:731
 msgid "Address"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:640
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:711
 msgid "Addresses"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:453
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:489
 msgid "Also account for the traffic between the devices of the local network."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:548
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:613
+msgid "Collected by the collector"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:619
 msgid "Collected packets"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:571
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:456
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:521
+msgid "Collector"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:642
 msgid "Collector is not running"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:562
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:633
 msgid "Collector running"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:435
-msgid ""
-"Comma separated list of the interfaces that face the internet. They provide "
-"the total traffic volume and the destination statistics."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:431
-msgid ""
-"Comma separated list of the interfaces that face the local network. The "
-"traffic of every device is attributed here."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:452
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:488
 msgid "Count internal traffic"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:305
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:327
 msgid "Destinations"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:397
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:419
 msgid "Destinations on the internet"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:611
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:682
 msgid "Device"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:462
-msgid "Device names"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:304
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:326
 msgid "Devices"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:384
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:406
 msgid "Devices of the local network"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:639
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:661
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:710
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:732
 msgid "Domain"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:447
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:483
 msgid "Domain cache lifetime"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:353
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:362
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:416
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:375
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:384
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:438
 msgid "Download"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:539
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:607
 msgid "Download rate"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:614
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:641
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:662
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:685
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:712
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:733
 msgid "Downloaded"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:684
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:755
 msgid "Downloaded in this period"
 msgstr ""
 
@@ -114,146 +107,166 @@ msgstr ""
 msgid "Grant access to the traffic statistics"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:306
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:328
 msgid "History"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:457
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:492
 msgid "History retention"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:612
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:683
 msgid "IP address"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:530
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:564
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:598
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:635
 msgid "Interface"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:439
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:474
 msgid ""
 "Interface whose byte counters are shown as the total traffic of the internet "
 "connection."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:369
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:526
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:391
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:594
 msgid "Internet connection"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:551
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:622
 msgid "Known domains"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:430
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:459
 msgid "LAN interfaces"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:443
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:479
 msgid ""
 "Length of a sampling interval in seconds. Lower values are more accurate but "
 "use a bit more CPU."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:284
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:306
 msgid "Loading ..."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:613
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:684
 msgid "MAC address"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:606
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:634
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:677
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:705
 msgid "No traffic recorded yet."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:458
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:493
 msgid "Number of days the daily statistics are kept on the flash memory."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:448
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:484
 msgid ""
 "Number of seconds a learned domain name is kept before it is looked up again."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:463
-msgid "Optional friendly name for a device, in the form \"mac address=name\"."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:303
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:325
 msgid "Overview"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:617
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:688
 msgid "Realtime"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:360
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:382
 msgid "Realtime traffic"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:545
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:518
+msgid "Restart collector"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:616
 msgid "Router itself"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:442
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:478
 msgid "Sampling interval"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:307
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:425
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:329
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:454
 msgid "Settings"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:438
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:473
 msgid "Statistics interface"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:399
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:421
 msgid ""
 "The addresses and domains of the internet that are used the most. The domain "
 "names are learned from the DNS traffic of the router."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:426
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:523
+msgid "The collector has to be restarted after the settings were changed."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:455
 msgid ""
 "The collector reads the traffic of the router with a read only packet "
 "socket. No firewall rule, route or DNS setting is changed."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:386
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:408
 msgid ""
 "The devices with the highest upload and download volume. The router itself "
 "is listed as well."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:657
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:467
+msgid ""
+"The interfaces that face the internet. They provide the total traffic volume "
+"and the destination statistics."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:460
+msgid ""
+"The interfaces that face the local network. The traffic of every device is "
+"attributed here."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:502
+msgid "The settings could not be loaded."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:728
 msgid "Top 10 addresses"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:602
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:673
 msgid "Top 10 devices"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:630
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:701
 msgid "Top 10 domains"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:616
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:643
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:664
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:687
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:714
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:735
 msgid "Total"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:355
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:533
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:377
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:601
 msgid "Total downloaded"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:356
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:536
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:378
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:604
 msgid "Total uploaded"
 msgstr ""
 
@@ -261,64 +274,64 @@ msgstr ""
 msgid "Traffic Statistics"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:411
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:433
 msgid "Traffic history"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:354
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:363
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:417
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:376
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:385
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:439
 msgid "Upload"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:542
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:610
 msgid "Upload rate"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:615
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:642
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:663
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:686
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:713
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:734
 msgid "Uploaded"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:687
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:758
 msgid "Uploaded in this period"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:563
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:634
 msgid "Uptime"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:434
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:466
 msgid "WAN interfaces"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:89
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:111
 msgid "d"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:89
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:91
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:111
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:113
 msgid "h"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:89
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:91
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:93
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:111
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:113
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:115
 msgid "m"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:504
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:506
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:575
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:576
 msgid "realtime"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:93
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:95
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:115
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:117
 msgid "s"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:509
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:512
-msgid "since the collector started"
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:578
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:580
+msgid "since the connection was established"
 msgstr ""

@@ -3,7 +3,8 @@
 		"description": "Grant access to the traffic statistics",
 		"read": {
 			"ubus": {
-				"luci.trafficstats": [ "overview", "devices", "destinations", "history", "config" ]
+				"luci.trafficstats": [ "overview", "devices", "destinations", "history", "config" ],
+				"network.device": [ "status" ]
 			},
 			"uci": [ "traffic-stats" ]
 		},

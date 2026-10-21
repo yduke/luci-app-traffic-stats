@@ -42,11 +42,13 @@ esac
 [ -z "$wan_dev" ] && wan_dev="wan"
 
 if [ "$current_lan" = "br-lan" ] && [ -n "$lan_dev" ]; then
-	uci -q set "$CONFIG.global.lan_interfaces=$lan_dev"
+	uci -q delete "$CONFIG.global.lan_interfaces"
+	uci -q add_list "$CONFIG.global.lan_interfaces=$lan_dev"
 fi
 
 if [ "$current_wan" = "wan" ] && [ -n "$wan_dev" ]; then
-	uci -q set "$CONFIG.global.wan_interfaces=$wan_dev"
+	uci -q delete "$CONFIG.global.wan_interfaces"
+	uci -q add_list "$CONFIG.global.wan_interfaces=$wan_dev"
 fi
 
 if [ "$current_stats" = "pppoe-wan" ] && [ -n "$stats_iface" ]; then

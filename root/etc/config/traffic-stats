@@ -13,13 +13,12 @@
 # count_internal   also count the traffic between the local devices
 # history_days     number of days the daily statistics are kept
 #
-# alias            optional friendly name for a device, the format is
-#                  "mac address=name", for example
-#                  list alias 'b0:7b:25:44:b1:16=Living room TV'
+# The names of the devices are taken from the DHCP leases of the router and
+# from the static DHCP entries in /etc/config/dhcp.
 
 config global 'global'
-	option lan_interfaces 'br-lan'
-	option wan_interfaces 'wan'
+	list lan_interfaces 'br-lan'
+	list wan_interfaces 'wan'
 	option stats_iface 'pppoe-wan'
 	option sample_interval '1'
 	option dns_ttl '300'

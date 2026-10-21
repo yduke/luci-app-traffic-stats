@@ -13,7 +13,9 @@ TRANSLATIONS = {
     "Addresses": "地址数",
     "Also account for the traffic between the devices of the local network.":
         "同时统计内网设备之间的流量。",
+    "Collected by the collector": "采集器统计",
     "Collected packets": "已收集数据包",
+    "Collector": "采集器",
     "Collector is not running": "采集器未运行",
     "Collector running": "采集器运行中",
     "Comma separated list of the interfaces that face the internet. They provide "
@@ -59,6 +61,7 @@ TRANSLATIONS = {
     "Overview": "总览",
     "Realtime": "实时",
     "Realtime traffic": "实时流量",
+    "Restart collector": "重启采集器",
     "Router itself": "OpenWRT 自身",
     "Sampling interval": "采样间隔",
     "Settings": "设置",
@@ -66,12 +69,21 @@ TRANSLATIONS = {
     "The addresses and domains of the internet that are used the most. The domain "
     "names are learned from the DNS traffic of the router.":
         "使用最多的外网地址与域名。域名由路由器的 DNS 流量中学习得到。",
+    "The collector has to be restarted after the settings were changed.":
+        "修改设置后需要重启采集器。",
     "The collector reads the traffic of the router with a read only packet "
     "socket. No firewall rule, route or DNS setting is changed.":
         "采集器以只读方式读取路由器上的流量，不会修改任何防火墙规则、路由或 DNS 设置。",
     "The devices with the highest upload and download volume. The router itself "
     "is listed as well.":
         "上传下载量最高的内网设备，同时包含 OpenWRT 自身。",
+    "The interfaces that face the internet. They provide the total traffic volume "
+    "and the destination statistics.":
+        "面向外网的接口，提供总流量和目标地址统计。",
+    "The interfaces that face the local network. The traffic of every device is "
+    "attributed here.":
+        "面向内网的接口，各台设备的流量都在此统计。",
+    "The settings could not be loaded.": "无法加载设置。",
     "Top 10 addresses": "外网 IP 流量 Top 10",
     "Top 10 devices": "内网设备 Top 10",
     "Top 10 domains": "外网域名 Top 10",
@@ -92,6 +104,7 @@ TRANSLATIONS = {
     "realtime": "实时",
     "s": "秒",
     "since the collector started": "自采集器启动以来",
+    "since the connection was established": "自连接建立以来",
 }
 
 STRING_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')

@@ -13,108 +13,105 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:49
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:55
 msgid "1 year"
 msgstr "一年内"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:46
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:52
 msgid "24 hours"
 msgstr "24 小时内"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:48
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:54
 msgid "30 days"
 msgstr "一个月内"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:47
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:53
 msgid "7 days"
 msgstr "一星期内"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:660
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:731
 msgid "Address"
 msgstr "地址"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:640
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:711
 msgid "Addresses"
 msgstr "地址数"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:453
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:489
 msgid "Also account for the traffic between the devices of the local network."
 msgstr "同时统计内网设备之间的流量。"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:548
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:613
+msgid "Collected by the collector"
+msgstr "采集器统计"
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:619
 msgid "Collected packets"
 msgstr "已收集数据包"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:571
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:456
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:521
+msgid "Collector"
+msgstr "采集器"
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:642
 msgid "Collector is not running"
 msgstr "采集器未运行"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:562
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:633
 msgid "Collector running"
 msgstr "采集器运行中"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:435
-msgid "Comma separated list of the interfaces that face the internet. They provide the total traffic volume and the destination statistics."
-msgstr "以逗号分隔的外网接口列表。该接口提供总流量和目标地址统计。"
-
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:431
-msgid "Comma separated list of the interfaces that face the local network. The traffic of every device is attributed here."
-msgstr "以逗号分隔的内网接口列表。所有内网设备的流量都在此统计。"
-
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:452
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:488
 msgid "Count internal traffic"
 msgstr "统计内网流量"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:305
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:327
 msgid "Destinations"
 msgstr "外网目标"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:397
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:419
 msgid "Destinations on the internet"
 msgstr "外网访问目标"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:611
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:682
 msgid "Device"
 msgstr "设备"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:462
-msgid "Device names"
-msgstr "设备名称"
-
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:304
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:326
 msgid "Devices"
 msgstr "内网设备"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:384
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:406
 msgid "Devices of the local network"
 msgstr "内网设备"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:639
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:661
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:710
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:732
 msgid "Domain"
 msgstr "域名"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:447
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:483
 msgid "Domain cache lifetime"
 msgstr "域名缓存时间"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:353
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:362
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:416
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:375
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:384
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:438
 msgid "Download"
 msgstr "下载"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:539
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:607
 msgid "Download rate"
 msgstr "下载速率"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:614
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:641
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:662
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:685
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:712
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:733
 msgid "Downloaded"
 msgstr "下载量"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:684
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:755
 msgid "Downloaded in this period"
 msgstr "本周期下载量"
 
@@ -122,135 +119,151 @@ msgstr "本周期下载量"
 msgid "Grant access to the traffic statistics"
 msgstr "授予流量统计接口访问权限"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:306
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:328
 msgid "History"
 msgstr "历史统计"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:457
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:492
 msgid "History retention"
 msgstr "历史保留天数"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:612
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:683
 msgid "IP address"
 msgstr "IP 地址"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:530
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:564
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:598
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:635
 msgid "Interface"
 msgstr "接口"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:439
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:474
 msgid "Interface whose byte counters are shown as the total traffic of the internet connection."
 msgstr "用于显示外网连接总流量的接口字节计数器。"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:369
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:526
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:391
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:594
 msgid "Internet connection"
 msgstr "外网连接"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:551
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:622
 msgid "Known domains"
 msgstr "已知域名"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:430
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:459
 msgid "LAN interfaces"
 msgstr "内网接口"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:443
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:479
 msgid "Length of a sampling interval in seconds. Lower values are more accurate but use a bit more CPU."
 msgstr "采样间隔，单位为秒。数值越小越精确，但会占用更多 CPU。"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:284
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:306
 msgid "Loading ..."
 msgstr "加载中 ..."
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:613
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:684
 msgid "MAC address"
 msgstr "MAC 地址"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:606
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:634
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:677
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:705
 msgid "No traffic recorded yet."
 msgstr "暂无流量记录。"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:458
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:493
 msgid "Number of days the daily statistics are kept on the flash memory."
 msgstr "每日统计在闪存中保留的天数。"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:448
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:484
 msgid "Number of seconds a learned domain name is kept before it is looked up again."
 msgstr "已学习到的域名在重新查询前的保留时间，单位为秒。"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:463
-msgid "Optional friendly name for a device, in the form \"mac address=name\"."
-msgstr "为设备设置易读名称，格式为 \"MAC 地址=名称\"。"
-
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:303
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:325
 msgid "Overview"
 msgstr "总览"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:617
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:688
 msgid "Realtime"
 msgstr "实时"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:360
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:382
 msgid "Realtime traffic"
 msgstr "实时流量"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:545
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:518
+msgid "Restart collector"
+msgstr "重启采集器"
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:616
 msgid "Router itself"
 msgstr "OpenWRT 自身"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:442
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:478
 msgid "Sampling interval"
 msgstr "采样间隔"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:307
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:425
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:329
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:454
 msgid "Settings"
 msgstr "设置"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:438
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:473
 msgid "Statistics interface"
 msgstr "统计接口"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:399
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:421
 msgid "The addresses and domains of the internet that are used the most. The domain names are learned from the DNS traffic of the router."
 msgstr "使用最多的外网地址与域名。域名由路由器的 DNS 流量中学习得到。"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:426
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:523
+msgid "The collector has to be restarted after the settings were changed."
+msgstr "修改设置后需要重启采集器。"
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:455
 msgid "The collector reads the traffic of the router with a read only packet socket. No firewall rule, route or DNS setting is changed."
 msgstr "采集器以只读方式读取路由器上的流量，不会修改任何防火墙规则、路由或 DNS 设置。"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:386
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:408
 msgid "The devices with the highest upload and download volume. The router itself is listed as well."
 msgstr "上传下载量最高的内网设备，同时包含 OpenWRT 自身。"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:657
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:467
+msgid "The interfaces that face the internet. They provide the total traffic volume and the destination statistics."
+msgstr "面向外网的接口，提供总流量和目标地址统计。"
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:460
+msgid "The interfaces that face the local network. The traffic of every device is attributed here."
+msgstr "面向内网的接口，各台设备的流量都在此统计。"
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:502
+msgid "The settings could not be loaded."
+msgstr "无法加载设置。"
+
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:728
 msgid "Top 10 addresses"
 msgstr "外网 IP 流量 Top 10"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:602
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:673
 msgid "Top 10 devices"
 msgstr "内网设备 Top 10"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:630
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:701
 msgid "Top 10 domains"
 msgstr "外网域名 Top 10"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:616
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:643
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:664
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:687
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:714
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:735
 msgid "Total"
 msgstr "合计"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:355
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:533
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:377
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:601
 msgid "Total downloaded"
 msgstr "累计下载"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:356
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:536
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:378
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:604
 msgid "Total uploaded"
 msgstr "累计上传"
 
@@ -258,65 +271,65 @@ msgstr "累计上传"
 msgid "Traffic Statistics"
 msgstr "流量统计"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:411
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:433
 msgid "Traffic history"
 msgstr "流量历史"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:354
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:363
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:417
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:376
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:385
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:439
 msgid "Upload"
 msgstr "上传"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:542
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:610
 msgid "Upload rate"
 msgstr "上传速率"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:615
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:642
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:663
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:686
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:713
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:734
 msgid "Uploaded"
 msgstr "上传量"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:687
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:758
 msgid "Uploaded in this period"
 msgstr "本周期上传量"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:563
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:634
 msgid "Uptime"
 msgstr "运行时长"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:434
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:466
 msgid "WAN interfaces"
 msgstr "外网接口"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:89
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:111
 msgid "d"
 msgstr "天"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:89
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:91
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:111
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:113
 msgid "h"
 msgstr "时"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:89
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:91
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:93
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:111
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:113
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:115
 msgid "m"
 msgstr "分"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:504
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:506
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:575
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:576
 msgid "realtime"
 msgstr "实时"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:93
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:95
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:115
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:117
 msgid "s"
 msgstr "秒"
 
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:509
-#: htdocs/luci-static/resources/view/traffic-stats/main.js:512
-msgid "since the collector started"
-msgstr "自采集器启动以来"
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:578
+#: htdocs/luci-static/resources/view/traffic-stats/main.js:580
+msgid "since the connection was established"
+msgstr "自连接建立以来"
 

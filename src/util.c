@@ -35,17 +35,32 @@ static void set_str(char *dst, size_t len, const char *src)
 
 static void add_iface(char list[MAX_IFACES][32], int *count, const char *name)
 {
-	int i;
+	char buf[128];
+	char *tok, *save = NULL;
 
-	if (name == NULL || name[0] == '\0' || *count >= MAX_IFACES)
+	if (name == NULL || name[0] == '\0')
 		return;
 
-	for (i = 0; i < *count; i++)
-		if (strcmp(list[i], name) == 0)
-			return;
+	/* the value may hold several interfaces separated by spaces or commas */
+	snprintf(buf, sizeof(buf), "%s", name);
 
-	snprintf(list[*count], 32, "%s", name);
-	(*count)++;
+	for (tok = strtok_r(buf, " ,\t", &save); tok != NULL;
+	     tok = strtok_r(NULL, " ,\t", &save)) {
+		int i;
+
+		if (tok[0] == '\0' || *count >= MAX_IFACES)
+			continue;
+
+		for (i = 0; i < *count; i++)
+			if (strcmp(list[i], tok) == 0)
+				break;
+
+		if (i < *count)
+			continue;
+
+		snprintf(list[*count], 32, "%s", tok);
+		(*count)++;
+	}
 }
 
 static int parse_bool(const char *v)
@@ -107,7 +122,7 @@ int ts_load_config(struct state *st)
 		if (strncmp(line, "traffic-stats.global.", 21) != 0)
 			continue;
 
-		snprintf(key, sizeof(key), "%s", line + 21);
+		snprintf(key, sizeof(key), "%.*s", (int)sizeof(key) - 1, line + 21);
 
 		if (strcmp(key, "lan_interfaces") == 0) {
 			add_iface(st->cfg.lan_ifaces, &st->cfg.lan_count, p);

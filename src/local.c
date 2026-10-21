@@ -17,6 +17,7 @@
 
 #define MAX_PREFIXES 32
 #define MAX_LEASES    512
+#define MAX_HOSTS     512
 
 /* the local IPv4 prefixes, used to tell internal from external traffic */
 static struct prefix4 prefixes[MAX_PREFIXES];
@@ -25,6 +26,22 @@ static int prefix_count;
 /* the local IPv6 prefixes */
 static struct prefix6 prefixes6[MAX_PREFIXES];
 static int prefix6_count;
+
+/* static DHCP entries: MAC -> host name */
+struct host {
+	char mac[18];
+	char name[64];
+};
+static struct host hosts[MAX_HOSTS];
+static int host_count;
+static time_t host_mtime;
+
+/* the hardware addresses of the local interfaces */
+struct localmac {
+	uint8_t mac[6];
+};
+static struct localmac localmacs[MAX_PREFIXES];
+static int localmac_count;
 
 /* lease cache: MAC -> host name */
 struct lease {
@@ -54,6 +71,19 @@ int local_init(struct state *st)
 	for (p = ifa; p != NULL && n < MAX_PREFIXES; p = p->ifa_next) {
 		struct sockaddr_in *sin;
 		uint32_t mask = 0xffffffffu;
+
+		/* remember the hardware address of the local interfaces */
+		if (sock >= 0 && localmac_count < MAX_PREFIXES) {
+			struct ifreq ifr;
+
+			memset(&ifr, 0, sizeof(ifr));
+			snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), "%s", p->ifa_name);
+
+			if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0) {
+				memcpy(localmacs[localmac_count].mac, ifr.ifr_hwaddr.sa_data, 6);
+				localmac_count++;
+			}
+		}
 
 		if (p->ifa_addr == NULL)
 			continue;
@@ -254,6 +284,106 @@ static void leases_reload(const char *path)
 	fclose(fp);
 }
 
+/*
+ * Read the static DHCP entries of /etc/config/dhcp. Every device that was
+ * given a name by the user is listed there.
+ */
+static void hosts_reload(const char *path)
+{
+	struct stat sb;
+	FILE *fp;
+	char line[512];
+	char mac[18], name[64];
+	int in_host = 0;
+
+	if (stat(path, &sb) != 0) {
+		host_count = 0;
+		return;
+	}
+
+	if (host_mtime == sb.st_mtime && host_count > 0)
+		return;
+
+	host_mtime = sb.st_mtime;
+	host_count = 0;
+
+	fp = fopen(path, "r");
+	if (fp == NULL) {
+		host_count = 0;
+		return;
+	}
+
+	mac[0] = '\0';
+	name[0] = '\0';
+
+	while (fgets(line, sizeof(line), fp) != NULL) {
+		char kw[32], key[64], vbuf[192];
+		char *p = line;
+		char *val;
+
+		while (*p == ' ' || *p == '\t')
+			p++;
+
+		if (*p == '\n' || *p == '\0' || *p == '#')
+			continue;
+
+		if (strncmp(p, "config ", 7) == 0) {
+			/* a new section starts, store the previous one */
+			if (in_host && mac[0] != '\0' && name[0] != '\0' && host_count < MAX_HOSTS) {
+				snprintf(hosts[host_count].mac, sizeof(hosts[host_count].mac), "%s", mac);
+				snprintf(hosts[host_count].name, sizeof(hosts[host_count].name), "%s", name);
+				host_count++;
+			}
+
+			in_host = 0;
+			mac[0] = '\0';
+			name[0] = '\0';
+
+			if (sscanf(p, "config %31s", kw) == 1 && strcmp(kw, "host") == 0)
+				in_host = 1;
+
+			continue;
+		}
+
+		if (!in_host)
+			continue;
+
+		if (sscanf(p, "%31s %63s %191[^\n]", kw, key, vbuf) != 3)
+			continue;
+
+		if (strcmp(kw, "option") != 0 && strcmp(kw, "list") != 0)
+			continue;
+
+		/* strip the quotes of the value */
+		{
+			size_t l = strlen(vbuf);
+
+			while (l > 0 && (vbuf[l - 1] == '\n' || vbuf[l - 1] == '\r' || vbuf[l - 1] == ' '))
+				vbuf[--l] = '\0';
+
+			if (l >= 2 && (vbuf[0] == '\'' || vbuf[0] == '"') && vbuf[l - 1] == vbuf[0]) {
+				vbuf[l - 1] = '\0';
+				val = vbuf + 1;
+			} else {
+				val = vbuf;
+			}
+		}
+
+		if (strcmp(key, "mac") == 0)
+			snprintf(mac, sizeof(mac), "%.*s", (int)sizeof(mac) - 1, val);
+		else if (strcmp(key, "name") == 0 || strcmp(key, "host") == 0)
+			snprintf(name, sizeof(name), "%.*s", (int)sizeof(name) - 1, val);
+	}
+
+	if (in_host && mac[0] != '\0' && name[0] != '\0' && host_count < MAX_HOSTS) {
+		snprintf(hosts[host_count].mac, sizeof(hosts[host_count].mac), "%s", mac);
+		snprintf(hosts[host_count].name, sizeof(hosts[host_count].name), "%s", name);
+		host_count++;
+	}
+
+	fclose(fp);
+}
+
 const char *device_name(struct state *st, const uint8_t *mac, uint32_t ip, char *buf, size_t len)
 {
 	char macstr[18];
@@ -262,7 +392,25 @@ const char *device_name(struct state *st, const uint8_t *mac, uint32_t ip, char 
 	snprintf(macstr, sizeof(macstr), "%02x:%02x:%02x:%02x:%02x:%02x",
 		 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-	/* user defined aliases win over everything else */
+	/* the traffic of the router itself */
+	for (i = 0; i < localmac_count; i++) {
+		if (memcmp(localmacs[i].mac, mac, 6) == 0) {
+			snprintf(buf, len, "%s", "OpenWRT");
+			return buf;
+		}
+	}
+
+	/* the names of the static DHCP entries have the highest priority */
+	hosts_reload("/etc/config/dhcp");
+
+	for (i = 0; i < host_count; i++) {
+		if (strcasecmp(hosts[i].mac, macstr) == 0) {
+			snprintf(buf, len, "%s", hosts[i].name);
+			return buf;
+		}
+	}
+
+	/* user defined aliases win over the names of the DHCP server */
 	for (i = 0; i < st->cfg.alias_count; i++) {
 		if (strcasecmp(st->cfg.aliases[i].mac, macstr) == 0) {
 			snprintf(buf, len, "%s", st->cfg.aliases[i].name);
@@ -294,4 +442,5 @@ const char *device_name(struct state *st, const uint8_t *mac, uint32_t ip, char 
 void local_refresh(struct state *st)
 {
 	leases_reload(st->cfg.lease_file);
+	hosts_reload("/etc/config/dhcp");
 }

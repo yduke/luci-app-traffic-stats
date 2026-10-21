@@ -39,6 +39,12 @@ var callRestart = rpc.declare({
 	expect: { '': {} }
 });
 
+var callNetworkDevices = rpc.declare({
+	object: 'network.device',
+	method: 'status',
+	expect: { '': {} }
+});
+
 var POLL_INTERVAL = 2;
 var LIVE_SAMPLES = 150;
 
@@ -73,6 +79,22 @@ function formatRate(value) {
 	}
 
 	return (i === 0 ? v : v.toFixed(2)) + ' ' + units[i];
+}
+
+/*
+ * Bandwidth in bits per second. Below one megabit the value is shown in
+ * kbps, above it in Mbps.
+ */
+function formatBitRate(bytesPerSecond) {
+	var bits = (Number(bytesPerSecond) || 0) * 8;
+
+	if (bits < 1000000)
+		return { value: (bits / 1000).toFixed(bits < 10000 ? 1 : 0), unit: 'kbps' };
+
+	if (bits < 1000000000)
+		return { value: (bits / 1000000).toFixed(2), unit: 'Mbps' };
+
+	return { value: (bits / 1000000000).toFixed(2), unit: 'Gbps' };
 }
 
 function formatNumber(value) {
@@ -224,7 +246,7 @@ function statBox(label, value, unit, cls) {
 		E('div', { 'class': 'ts-stat-label' }, label),
 		E('div', { 'class': 'ts-stat-value' }, [
 			E('span', { 'class': 'ts-stat-number' }, value),
-			unit ? E('span', { 'class': 'ts-stat-unit' }, unit) : ''
+			E('span', { 'class': 'ts-stat-unit' }, unit || '')
 		]),
 		E('div', { 'class': 'ts-stat-sub' }, '')
 	]);
@@ -352,8 +374,8 @@ return view.extend({
 
 		var downBox = statBox(_('Download'), '0', '', 'ts-down');
 		var upBox = statBox(_('Upload'), '0', '', 'ts-up');
-		var downTotal = statBox(_('Total downloaded'), '0', '', 'ts-down');
-		var upTotal = statBox(_('Total uploaded'), '0', '', 'ts-up');
+		var downTotalBox = statBox(_('Total downloaded'), '0', '', 'ts-down');
+		var upTotalBox = statBox(_('Total uploaded'), '0', '', 'ts-up');
 
 		var liveChart = E('svg', { 'class': 'ts-chart', 'preserveAspectRatio': 'none' });
 		var liveChartBox = E('div', { 'class': 'ts-card' }, [
@@ -370,7 +392,7 @@ return view.extend({
 		]);
 
 		paneMap.overview.appendChild(E('div', { 'class': 'ts-grid ts-grid-4' }, [
-			downBox, upBox, downTotal, upTotal
+			downBox, upBox, downTotalBox, upTotalBox
 		]));
 		paneMap.overview.appendChild(liveChartBox);
 		paneMap.overview.appendChild(wanTable);
@@ -422,53 +444,58 @@ return view.extend({
 
 		/* ---------------- settings pane ---------------- */
 
-		var map = new form.Map('traffic-stats', _('Settings'),
-			_('The collector reads the traffic of the router with a read only packet socket. No firewall rule, route or DNS setting is changed.'));
-
-		var section = map.section(form.NamedSection, 'global', _('Collector'));
-		var opt;
-
-		opt = section.option(form.Value, 'lan_interfaces', _('LAN interfaces'),
-			_('Comma separated list of the interfaces that face the local network. The traffic of every device is attributed here.'));
-		opt.default = 'br-lan';
-
-		opt = section.option(form.Value, 'wan_interfaces', _('WAN interfaces'),
-			_('Comma separated list of the interfaces that face the internet. They provide the total traffic volume and the destination statistics.'));
-		opt.default = 'wan';
-
-		opt = section.option(form.Value, 'stats_iface', _('Statistics interface'),
-			_('Interface whose byte counters are shown as the total traffic of the internet connection.'));
-		opt.default = 'pppoe-wan';
-
-		opt = section.option(form.Value, 'sample_interval', _('Sampling interval'),
-			_('Length of a sampling interval in seconds. Lower values are more accurate but use a bit more CPU.'));
-		opt.default = '1';
-		opt.datatype = 'range(1,60)';
-
-		opt = section.option(form.Value, 'dns_ttl', _('Domain cache lifetime'),
-			_('Number of seconds a learned domain name is kept before it is looked up again.'));
-		opt.default = '300';
-		opt.datatype = 'range(10,86400)';
-
-		opt = section.option(form.Flag, 'count_internal', _('Count internal traffic'),
-			_('Also account for the traffic between the devices of the local network.'));
-		opt.default = '0';
-
-		opt = section.option(form.Value, 'history_days', _('History retention'),
-			_('Number of days the daily statistics are kept on the flash memory.'));
-		opt.default = '400';
-		opt.datatype = 'range(1,3650)';
-
-		opt = section.option(form.DynamicList, 'alias', _('Device names'),
-			_('Optional friendly name for a device, in the form "mac address=name".'));
-		opt.placeholder = 'b0:7b:25:44:b1:16=Living room TV';
-
 		var formHolder = E('div', { 'class': 'ts-form-holder' });
 
 		paneMap.settings.appendChild(formHolder);
 
-		/* the form is rendered asynchronously */
-		map.render().then(function(node) {
+		/* the settings are built when the list of interfaces is known */
+		callNetworkDevices().catch(function() { return {}; }).then(function(devices) {
+			var names = Object.keys(devices || {}).sort();
+			var map = new form.Map('traffic-stats', _('Settings'),
+				_('The collector reads the traffic of the router with a read only packet socket. No firewall rule, route or DNS setting is changed.'));
+			var section = map.section(form.NamedSection, 'global', _('Collector'));
+			var opt;
+
+			opt = section.option(form.RichListValue, 'lan_interfaces', _('LAN interfaces'),
+				_('The interfaces that face the local network. The traffic of every device is attributed here.'));
+			opt.multiple = true;
+			opt.rmempty = false;
+			names.forEach(function(name) { opt.value(name, name); });
+			opt.default = [ 'br-lan' ];
+
+			opt = section.option(form.RichListValue, 'wan_interfaces', _('WAN interfaces'),
+				_('The interfaces that face the internet. They provide the total traffic volume and the destination statistics.'));
+			opt.multiple = true;
+			opt.rmempty = false;
+			names.forEach(function(name) { opt.value(name, name); });
+			opt.default = [ 'wan' ];
+
+			opt = section.option(form.ListValue, 'stats_iface', _('Statistics interface'),
+				_('Interface whose byte counters are shown as the total traffic of the internet connection.'));
+			names.forEach(function(name) { opt.value(name, name); });
+			opt.default = 'pppoe-wan';
+
+			opt = section.option(form.Value, 'sample_interval', _('Sampling interval'),
+				_('Length of a sampling interval in seconds. Lower values are more accurate but use a bit more CPU.'));
+			opt.default = '1';
+			opt.datatype = 'range(1,60)';
+
+			opt = section.option(form.Value, 'dns_ttl', _('Domain cache lifetime'),
+				_('Number of seconds a learned domain name is kept before it is looked up again.'));
+			opt.default = '300';
+			opt.datatype = 'range(10,86400)';
+
+			opt = section.option(form.Flag, 'count_internal', _('Count internal traffic'),
+				_('Also account for the traffic between the devices of the local network.'));
+			opt.default = '0';
+
+			opt = section.option(form.Value, 'history_days', _('History retention'),
+				_('Number of days the daily statistics are kept on the flash memory.'));
+			opt.default = '400';
+			opt.datatype = 'range(1,3650)';
+
+			return map.render();
+		}).then(function(node) {
 			formHolder.appendChild(node);
 		}).catch(function() {
 			formHolder.appendChild(E('div', { 'class': 'ts-empty' },
@@ -517,9 +544,18 @@ return view.extend({
 		/* ---------------- data loading ---------------- */
 
 		function setStat(box, value, unit, sub) {
-			box.querySelector('.ts-stat-number').textContent = value;
-			box.querySelector('.ts-stat-unit').textContent = unit || '';
-			box.querySelector('.ts-stat-sub').textContent = sub || '';
+			var number = box.querySelector('.ts-stat-number');
+			var u = box.querySelector('.ts-stat-unit');
+			var s = box.querySelector('.ts-stat-sub');
+
+			if (number)
+				number.textContent = value;
+
+			if (u)
+				u.textContent = unit || '';
+
+			if (s)
+				s.textContent = sub || '';
 		}
 
 		function updateOverview(live) {
@@ -531,17 +567,17 @@ return view.extend({
 			var wan = live.wan || {};
 			var down = Number(wan.down_rate) || 0;
 			var up = Number(wan.up_rate) || 0;
+			var downRate = formatBitRate(down);
+			var upRate = formatBitRate(up);
+			var downTotal = formatBytes(wan.rx_bytes);
+			var upTotal = formatBytes(wan.tx_bytes);
 
-			setStat(downBox, formatRate(down).split(' ')[0], formatRate(down).split(' ').slice(1).join(' '),
-				_('realtime'));
-			setStat(upBox, formatRate(up).split(' ')[0], formatRate(up).split(' ').slice(1).join(' '),
-				_('realtime'));
-			setStat(downTotal, formatBytes(wan.down_bytes).split(' ')[0],
-				formatBytes(wan.down_bytes).split(' ').slice(1).join(' '),
-				_('since the collector started'));
-			setStat(upTotal, formatBytes(wan.up_bytes).split(' ')[0],
-				formatBytes(wan.up_bytes).split(' ').slice(1).join(' '),
-				_('since the collector started'));
+			setStat(downBox, downRate.value, downRate.unit, _('realtime'));
+			setStat(upBox, upRate.value, upRate.unit, _('realtime'));
+			setStat(downTotalBox, downTotal.split(' ')[0], downTotal.split(' ').slice(1).join(' '),
+				_('since the connection was established'));
+			setStat(upTotalBox, upTotal.split(' ')[0], upTotal.split(' ').slice(1).join(' '),
+				_('since the connection was established'));
 
 			/* live chart */
 			state.series.push({ down: down, up: up });
@@ -551,7 +587,7 @@ return view.extend({
 			drawChart(liveChart, [
 				{ key: 'down', values: state.series.map(function(s) { return s.down; }) },
 				{ key: 'up', values: state.series.map(function(s) { return s.up; }) }
-			], { format: formatRate });
+			], { format: function(value) { return formatBitRate(value).value + ' ' + formatBitRate(value).unit; } });
 
 			/* connection details */
 			wanTable.innerHTML = '';
@@ -568,10 +604,13 @@ return view.extend({
 					cells: [ _('Total uploaded'), formatBytes(wan.tx_bytes) ]
 				},
 				{
-					cells: [ _('Download rate'), formatRate(wan.rx_rate) ]
+					cells: [ _('Download rate'), formatBitRate(wan.rx_rate).value + ' ' + formatBitRate(wan.rx_rate).unit ]
 				},
 				{
-					cells: [ _('Upload rate'), formatRate(wan.tx_rate) ]
+					cells: [ _('Upload rate'), formatBitRate(wan.tx_rate).value + ' ' + formatBitRate(wan.tx_rate).unit ]
+				},
+				{
+					cells: [ _('Collected by the collector'), formatBytes(wan.down_bytes) + ' / ' + formatBytes(wan.up_bytes) ]
 				},
 				{
 					cells: [ _('Router itself'), formatBytes((live.router || {}).down_bytes) + ' / ' + formatBytes((live.router || {}).up_bytes) ]
