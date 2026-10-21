@@ -7,7 +7,9 @@ internet connection, the devices with the highest traffic volume, the most
 used destinations of the internet and the traffic history of the last hours,
 days, months and years.
 
-![status](https://img.shields.io/badge/luci-app--traffic--stats-in%20status-blue)
+![license](https://img.shields.io/badge/license-MIT-blue)
+![luci](https://img.shields.io/badge/LuCI-OpenWrt%20ready-blue)
+![lang](https://img.shields.io/badge/language-English%20%2F%20%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-blue)
 
 ## Features
 
@@ -116,6 +118,10 @@ Requirements of the build host: `make`, `gcc`, `gettext`, `python3` and the
 usual OpenWrt build dependencies.
 
 ### Translations
+
+The translations live in `i18n/`, they are compiled into the application
+package and are not shipped as a separate translation package like the
+other LuCI applications do.
 
 The translation template is generated with the script of the LuCI
 repository:
