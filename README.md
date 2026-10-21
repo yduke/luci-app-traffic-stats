@@ -43,27 +43,44 @@ table, they are not affected by the hardware offloading of the firewall.
 
 ## Installation
 
-Download the package that matches the package manager of the router:
+The build produces four files, but only **two of them belong together** —
+one package of the application and one translation package, each in the
+format of the package manager of the router:
 
-| Router | Package |
-| ------ | ------- |
-| OpenWrt 19.07 - 24.10, Kwrt | `luci-app-traffic-stats_1.0.0-r1_aarch64_cortex-a53.ipk` |
-| OpenWrt 25.12 and newer | `luci-app-traffic-stats-1.0.0-r1.apk` |
+| File | Package manager | Content |
+| ---- | --------------- | ------- |
+| `luci-app-traffic-stats_1.0.0-r1_aarch64_cortex-a53.ipk` | opkg | the application |
+| `luci-app-traffic-stats-1.0.0-r1.apk` | apk | the application |
+| `luci-i18n-traffic-stats-zh-cn_..._all.ipk` | opkg | the Chinese translation |
+| `luci-i18n-traffic-stats-zh-cn-....apk` | apk | the Chinese translation |
+
+The `.ipk` and the `.apk` of a row contain exactly the same files, they
+only differ in the container format. Install the pair that matches the
+router, never both.
 
 ```sh
-# with opkg
+# opkg based routers (OpenWrt up to 25.12 with opkg, most vendor builds)
 opkg install luci-app-traffic-stats_1.0.0-r1_aarch64_cortex-a53.ipk
+opkg install luci-i18n-traffic-stats-zh-cn_26.294.33994~502d989_all.ipk
 
-# with apk
+# apk based routers (OpenWrt 25.12 and newer)
 apk add luci-app-traffic-stats-1.0.0-r1.apk
+apk add luci-i18n-traffic-stats-zh-cn-26.294.33994~502d989.apk
 ```
 
-The Chinese translation is a separate package:
+### Language
 
-```sh
-opkg install luci-i18n-traffic-stats-zh-cn_0.261021.27580_all.ipk
-apk add luci-i18n-traffic-stats-zh-cn-0.261021.27580.apk
-```
+The application has no language setting of its own, it follows the
+language of the LuCI interface:
+
+* the strings of the interface are written in English,
+* the Chinese translation is a separate package, LuCI loads it when the
+  interface language is *简体中文*,
+* with any other interface language the English strings are shown.
+
+So the Chinese package is optional, the application is fully functional
+without it. The language is changed in *System -> System -> Language* and
+takes effect after a reload of the page.
 
 After the installation the application is available at *Status -> Traffic
 Statistics*.
