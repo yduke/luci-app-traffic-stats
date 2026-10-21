@@ -34,6 +34,7 @@ TRANSLATIONS = {
     "Domain": "域名",
     "Domain cache lifetime": "域名缓存时间",
     "Download": "下载",
+    "Error": "错误",
     "Download rate": "下载速率",
     "Downloaded": "下载量",
     "Downloaded in this period": "本周期下载量",

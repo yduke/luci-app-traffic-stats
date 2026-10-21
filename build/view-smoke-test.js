@@ -74,6 +74,26 @@ function E(tag, attrs, children) {
 	node.setAttribute = function(name, value) {
 		node.attrs[name] = value;
 	};
+	node.removeAttribute = function(name) {
+		delete node.attrs[name];
+	};
+
+	/* the text of an element is stored in "text" */
+	Object.defineProperty(node, 'textContent', {
+		get: function() { return node.text; },
+		set: function(value) {
+			node.text = (value === null || value === undefined) ? '' : String(value);
+			node.children = [];
+		}
+	});
+
+	Object.defineProperty(node, 'innerHTML', {
+		get: function() { return node.text; },
+		set: function(value) {
+			node.text = (value === null || value === undefined) ? '' : String(value);
+			node.children = [];
+		}
+	});
 	node.classList = {
 		toggle: function() {},
 		add: function() {},
@@ -109,11 +129,22 @@ function findChild(node, selector) {
 	return found;
 }
 
+function findAll(node, selector) {
+	let out = [];
+
+	walk(node, function(child) {
+		if (matches(child, selector))
+			out.push(child);
+	});
+
+	return out;
+}
+
 /* ------------------------------------------------------------------ */
 /* mocked LuCI modules                                                 */
 /* ------------------------------------------------------------------ */
 
-const calls = { rpc: {}, poll: [], form: null, uci: null };
+const calls = { rpc: {}, poll: [], form: null, uci: null, errors: [] };
 
 const rpc = {
 	declare: function(spec) {
@@ -202,7 +233,11 @@ global.document = {
 	querySelector: function() { return null; },
 	createElement: function() { return E('div'); },
 	createElementNS: function(ns, tag) { return E(tag); },
-	createTextNode: function(t) { return t; }
+	createTextNode: function(t) {
+		let node = E('#text');
+		node.text = String(t);
+		return node;
+	}
 };
 global.setTimeout = setTimeout;
 global.clearTimeout = clearTimeout;
@@ -212,6 +247,10 @@ global.clearTimeout = clearTimeout;
 /* ------------------------------------------------------------------ */
 
 function overviewData() {
+	/* use the data of a real router when it is available */
+	if (process.argv[2] && fs.existsSync(process.argv[2]))
+		return JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+
 	return {
 		available: true,
 		ts: 1700000000,
@@ -294,7 +333,32 @@ assert.ok(calls.poll[0].interval >= 1, 'the poll interval is invalid');
 /* run the poll callback once, it must not throw */
 return Promise.resolve(calls.poll[0].fn()).then(function() {
 	assert.ok(calls.rpc.overview > 0, 'the overview was never requested');
-	console.log('view smoke test: OK (' + nodeCount + ' nodes created)');
+
+	/* the view reports problems in the status bar, the test must not see any */
+	let status = findChild(container, '.ts-status-text');
+
+	assert.ok(status, 'the status bar is missing');
+	assert.ok(status.text.indexOf('Error') !== 0 && status.text.indexOf('not running') < 0,
+		'the view reported a problem: ' + status.text);
+
+	/* the live chart must contain the series */
+	let charts = findAll(container, '.ts-chart');
+
+	assert.ok(charts.length >= 2, 'the charts are missing');
+
+	let live = findAll(charts[0], '.ts-line');
+
+	assert.ok(live.length > 0, 'the live chart has no series');
+
+	/* the history chart is drawn when the tab is opened */
+	return Promise.resolve(instance.refreshHistory()).then(function() {
+		let history = findAll(charts[1], '.ts-line');
+
+		assert.ok(history.length > 0, 'the history chart has no series');
+
+		console.log('view smoke test: OK (' + nodeCount + ' nodes created, status: ' +
+			status.text + ', ' + live.length + ' live lines, ' + history.length + ' history lines)');
+	});
 }).catch(function(err) {
 	console.error('view smoke test: FAILED');
 	console.error(err);

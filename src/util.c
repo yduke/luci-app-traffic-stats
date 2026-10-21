@@ -35,17 +35,25 @@ static void set_str(char *dst, size_t len, const char *src)
 
 static void add_iface(char list[MAX_IFACES][32], int *count, const char *name)
 {
-	char buf[128];
+	char buf[256];
 	char *tok, *save = NULL;
+	char *p;
 
 	if (name == NULL || name[0] == '\0')
 		return;
 
-	/* the value may hold several interfaces separated by spaces or commas */
 	snprintf(buf, sizeof(buf), "%s", name);
 
-	for (tok = strtok_r(buf, " ,\t", &save); tok != NULL;
-	     tok = strtok_r(NULL, " ,\t", &save)) {
+	/*
+	 * The value may hold several interfaces, either as a list
+	 * ("'br-lan' 'lan1'") or separated by spaces or commas.
+	 */
+	for (p = buf; *p != '\0'; p++)
+		if (*p == '\'' || *p == '"' || *p == ',' || *p == ';')
+			*p = ' ';
+
+	for (tok = strtok_r(buf, " \t", &save); tok != NULL;
+	     tok = strtok_r(NULL, " \t", &save)) {
 		int i;
 
 		if (tok[0] == '\0' || *count >= MAX_IFACES)

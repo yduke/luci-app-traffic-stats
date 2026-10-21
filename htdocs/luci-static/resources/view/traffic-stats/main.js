@@ -126,6 +126,20 @@ function formatTime(ts) {
 }
 
 /*
+ * The E() helper of LuCI creates HTML elements, an SVG element has to be
+ * created with its own namespace, otherwise the browser does not render
+ * the chart.
+ */
+function createChart() {
+	var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+
+	svg.setAttribute('class', 'ts-chart');
+	svg.setAttribute('preserveAspectRatio', 'none');
+
+	return svg;
+}
+
+/*
  * Draw a two line area chart. The chart uses a fixed coordinate system so
  * it scales with the browser window without any JavaScript resizing.
  */
@@ -209,10 +223,14 @@ function drawChart(svg, series, options) {
 		for (j = 0; j < values.length; j++)
 			points.push(x(j).toFixed(1) + ',' + y(values[j]).toFixed(1));
 
+		/* a single sample is drawn across the whole width */
+		if (points.length == 1)
+			points.push((W - padR).toFixed(1) + ',' + y(values[0]).toFixed(1));
+
 		if (points.length > 0) {
-			area.push(padL + ',' + (H - padB));
+			area.push(padL.toFixed(1) + ',' + (H - padB).toFixed(1));
 			area = area.concat(points);
-			area.push(x(points.length - 1).split(',')[0] + ',' + (H - padB));
+			area.push(x(points.length - 1).toFixed(1) + ',' + (H - padB).toFixed(1));
 
 			svg.appendChild(el('polygon', {
 				points: area.join(' '), class: 'ts-area ts-area-' + series[i].key
@@ -377,7 +395,7 @@ return view.extend({
 		var downTotalBox = statBox(_('Total downloaded'), '0', '', 'ts-down');
 		var upTotalBox = statBox(_('Total uploaded'), '0', '', 'ts-up');
 
-		var liveChart = E('svg', { 'class': 'ts-chart', 'preserveAspectRatio': 'none' });
+		var liveChart = createChart();
 		var liveChartBox = E('div', { 'class': 'ts-card' }, [
 			E('div', { 'class': 'ts-card-title' }, _('Realtime traffic')),
 			E('div', { 'class': 'ts-legend' }, [
@@ -426,7 +444,7 @@ return view.extend({
 		/* ---------------- history pane ---------------- */
 
 		var historyRange = E('div', { 'class': 'ts-range' });
-		var historyChart = E('svg', { 'class': 'ts-chart', 'preserveAspectRatio': 'none' });
+		var historyChart = createChart();
 		var historyTotals = E('div', { 'class': 'ts-grid ts-grid-2' });
 
 		paneMap.history.appendChild(E('div', { 'class': 'ts-card' }, [
@@ -558,6 +576,30 @@ return view.extend({
 				s.textContent = sub || '';
 		}
 
+		/*
+		 * Show a problem in the status bar, the message helps to find the
+		 * reason without a javascript console.
+		 */
+		function setError(err) {
+			var msg = (err && err.message) ? err.message : String(err);
+
+			statusText.textContent = _('Error') + ': ' + msg;
+			statusBox.setAttribute('data-error', '1');
+		}
+
+		function clearError() {
+			statusBox.removeAttribute('data-error');
+		}
+
+		/* errors outside of the update functions are shown as well */
+		window.addEventListener('error', function(ev) {
+			setError(ev.error || ev.message);
+		});
+
+		window.addEventListener('unhandledrejection', function(ev) {
+			setError(ev.reason);
+		});
+
 		function updateOverview(live) {
 			if (!live || !live.available)
 				return;
@@ -572,6 +614,8 @@ return view.extend({
 			var downTotal = formatBytes(wan.rx_bytes);
 			var upTotal = formatBytes(wan.tx_bytes);
 
+			clearError();
+
 			setStat(downBox, downRate.value, downRate.unit, _('realtime'));
 			setStat(upBox, upRate.value, upRate.unit, _('realtime'));
 			setStat(downTotalBox, downTotal.split(' ')[0], downTotal.split(' ').slice(1).join(' '),
@@ -584,10 +628,17 @@ return view.extend({
 			while (state.series.length > LIVE_SAMPLES)
 				state.series.shift();
 
-			drawChart(liveChart, [
-				{ key: 'down', values: state.series.map(function(s) { return s.down; }) },
-				{ key: 'up', values: state.series.map(function(s) { return s.up; }) }
-			], { format: function(value) { return formatBitRate(value).value + ' ' + formatBitRate(value).unit; } });
+			try {
+				drawChart(liveChart, [
+					{ key: 'down', values: state.series.map(function(s) { return s.down; }) },
+					{ key: 'up', values: state.series.map(function(s) { return s.up; }) }
+				], { format: function(value) {
+					var rate = formatBitRate(value);
+					return rate.value + ' ' + rate.unit;
+				} });
+			} catch (e) {
+				setError(e);
+			}
 
 			/* connection details */
 			wanTable.innerHTML = '';
@@ -638,8 +689,8 @@ return view.extend({
 		function refreshOverview() {
 			return callOverview().then(function(live) {
 				updateOverview(live);
-			}).catch(function() {
-				statusText.textContent = _('Collector is not running');
+			}).catch(function(err) {
+				setError(err);
 			});
 		}
 
@@ -687,7 +738,9 @@ return view.extend({
 					{ title: _('Total'), cls: 'ts-num' },
 					{ title: _('Realtime'), cls: 'ts-num' }
 				], deviceRows(list)));
-			}).catch(function() {});
+			}).catch(function(err) {
+				setError(err);
+			});
 		}
 
 		function refreshDestinations() {
@@ -765,11 +818,17 @@ return view.extend({
 				for (var i = 0; i < points.length; i += step)
 					labels.push(formatTime(points[i].ts));
 
-				drawChart(historyChart, [
-					{ key: 'down', values: points.map(function(p) { return Number(p.down) || 0; }) },
-					{ key: 'up', values: points.map(function(p) { return Number(p.up) || 0; }) }
-				], { labels: labels, format: formatBytes });
-			}).catch(function() {});
+				try {
+					drawChart(historyChart, [
+						{ key: 'down', values: points.map(function(p) { return Number(p.down) || 0; }) },
+						{ key: 'up', values: points.map(function(p) { return Number(p.up) || 0; }) }
+					], { labels: labels, format: formatBytes });
+				} catch (e) {
+					setError(e);
+				}
+			}).catch(function(err) {
+				setError(err);
+			});
 		}
 
 		renderRange(devicesRange, state.range, function(range) {

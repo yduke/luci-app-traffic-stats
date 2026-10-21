@@ -49,6 +49,14 @@
 	box-shadow: 0 0 0 3px var(--ts-card-head);
 }
 
+.ts-status[data-error] .ts-dot {
+	background: var(--ts-up);
+}
+
+.ts-status[data-error] .ts-status-text {
+	color: var(--ts-up);
+}
+
 .ts-info {
 	opacity: .8;
 }
