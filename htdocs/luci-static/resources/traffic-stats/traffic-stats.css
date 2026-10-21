@@ -11,7 +11,7 @@
 .ts-root {
 	--ts-down: var(--primary, #5e72e4);
 	--ts-up: var(--danger, #f36c60);
-	--ts-card: var(--card-bg, #ffffff);
+	--ts-card: var(--surface-raised, #ffffff);
 	--ts-card-head: var(--card-accent, rgba(94, 114, 228, 0.1));
 	--ts-text: var(--text-color, #525f7f);
 	--ts-text-strong: var(--text-strong, #323b5f);
@@ -374,7 +374,7 @@
 /* ---------- Argon dark mode ---------- */
 
 :root[data-argon-mode="dark"] .ts-root {
-	--ts-card: var(--card-bg, #262e4f);
+	--ts-card: var(--surface-raised, #262e4f);
 	--ts-text: var(--text-color, #ccc);
 	--ts-text-strong: var(--text-strong, #e6e6e6);
 	--ts-border: var(--border-color, #333d64);
@@ -383,7 +383,7 @@
 
 @media (prefers-color-scheme: dark) {
 	:root:not([data-argon-mode="light"]):not([data-argon-mode="dark"]) .ts-root {
-		--ts-card: var(--card-bg, #262e4f);
+		--ts-card: var(--surface-raised, #262e4f);
 		--ts-text: var(--text-color, #ccc);
 		--ts-text-strong: var(--text-strong, #e6e6e6);
 		--ts-border: var(--border-color, #333d64);
@@ -394,7 +394,7 @@
 /* older Argon releases mark the dark mode on the body element */
 body.dark .ts-root,
 html[data-darkmode="true"] .ts-root {
-	--ts-card: var(--card-bg, #262e4f);
+	--ts-card: var(--surface-raised, #262e4f);
 	--ts-text: var(--text-color, #ccc);
 	--ts-text-strong: var(--text-strong, #e6e6e6);
 	--ts-border: var(--border-color, #333d64);

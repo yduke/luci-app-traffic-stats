@@ -523,6 +523,17 @@ return view.extend({
 
 			return map.render();
 		}).then(function(node) {
+			/*
+			 * The theme draws a shadow around the sections of a
+			 * form, the options of the collector do not need it.
+			 */
+			node.querySelectorAll('.cbi-section').forEach(function(section) {
+				section.classList.remove('cbi-section');
+
+				if (!section.className.trim())
+					section.removeAttribute('class');
+			});
+
 			formHolder.appendChild(node);
 		}).catch(function() {
 			formHolder.appendChild(E('div', { 'class': 'ts-empty' },
