@@ -942,24 +942,23 @@ return view.extend({
 		/*
 		 * A stopped collector does not need to be polled every second,
 		 * the page slows down as well.
+		 *
+		 * The poll module of LuCI expects the callback function when a
+		 * poll is removed, poll.add() does not return the entry.
 		 */
-		var pollEntry = null;
-		var pollInterval = 0;
+		var pollCallback = null;
 
 		function setPollInterval(interval) {
-			if (pollInterval == interval)
-				return;
-
-			pollInterval = interval;
-
-			if (pollEntry != null) {
-				poll.remove(pollEntry);
-				pollEntry = null;
+			if (pollCallback != null) {
+				poll.remove(pollCallback);
+				pollCallback = null;
 			}
 
-			pollEntry = poll.add(function() {
+			pollCallback = function() {
 				return refreshOverview();
-			}, interval);
+			};
+
+			poll.add(pollCallback, interval);
 		}
 
 		setPollInterval(POLL_INTERVAL);

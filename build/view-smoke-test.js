@@ -171,9 +171,40 @@ const rpc = {
 	}
 };
 
+/*
+ * The poll module of LuCI, the behaviour of the real module is mirrored
+ * here: add() takes the callback and the interval, remove() expects the
+ * callback and throws for anything else.
+ */
 const poll = {
+	queue: [],
 	add: function(fn, interval) {
+		if (typeof fn !== 'function')
+			throw new TypeError('Invalid argument to LuCI.poll.add()');
+
+		if (interval == null || interval <= 0)
+			throw new TypeError('Invalid poll interval');
+
+		for (let i = 0; i < this.queue.length; i++)
+			if (this.queue[i].fn === fn)
+				return false;
+
+		this.queue.push({ fn: fn, i: interval });
 		calls.poll.push({ fn: fn, interval: interval });
+
+		return true;
+	},
+	remove: function(fn) {
+		if (typeof fn !== 'function')
+			throw new TypeError('Invalid argument to LuCI.poll.remove()');
+
+		const len = this.queue.length;
+
+		for (let i = len; i > 0; i--)
+			if (this.queue[i - 1].fn === fn)
+				this.queue.splice(i - 1, 1);
+
+		return this.queue.length != len;
 	}
 };
 
@@ -250,6 +281,8 @@ global.clearTimeout = clearTimeout;
 /* test data                                                           */
 /* ------------------------------------------------------------------ */
 
+const overviewState = { collector: 'running' };
+
 function overviewData() {
 	/* use the data of a real router when it is available */
 	if (process.argv[2] && fs.existsSync(process.argv[2]))
@@ -257,6 +290,7 @@ function overviewData() {
 
 	return {
 		available: true,
+		collector: overviewState.collector,
 		ts: 1700000000,
 		version: '1.0.0',
 		uptime: 3600,
@@ -360,8 +394,20 @@ return Promise.resolve(calls.poll[0].fn()).then(function() {
 
 		assert.ok(history.length > 0, 'the history chart has no series');
 
-		console.log('view smoke test: OK (' + nodeCount + ' nodes created, status: ' +
-			status.text + ', ' + live.length + ' live lines, ' + history.length + ' history lines)');
+		/* a stopped collector slows the polling down, the poll is replaced */
+		overviewState.collector = 'stopped';
+
+		return Promise.resolve(calls.poll[0].fn()).then(function() {
+			/* the interval is changed in a deferred callback */
+			return new Promise(function(resolve) { setTimeout(resolve, 20); });
+		}).then(function() {
+			assert.ok(calls.poll.length > 1, 'the poll was not replaced');
+			assert.ok(calls.poll[calls.poll.length - 1].interval > 2,
+				'the poll interval was not increased');
+
+			console.log('view smoke test: OK (' + nodeCount + ' nodes created, status: ' +
+				status.text + ', ' + live.length + ' live lines, ' + history.length + ' history lines)');
+		});
 	});
 }).catch(function(err) {
 	console.error('view smoke test: FAILED');
