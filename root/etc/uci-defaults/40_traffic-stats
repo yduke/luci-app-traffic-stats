@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# Detect the interfaces of this router and store them in the configuration
+# of the traffic statistics collector. The values are only written when the
+# shipped defaults are still in place, a manual configuration is never
+# overwritten.
+#
+
+CONFIG=traffic-stats
+
+. /lib/functions.sh
+
+current_lan="$(uci -q get "$CONFIG.global.lan_interfaces")"
+current_wan="$(uci -q get "$CONFIG.global.wan_interfaces")"
+current_stats="$(uci -q get "$CONFIG.global.stats_iface")"
+
+# the interface that faces the local network
+lan_dev="$(uci -q get network.lan.device)"
+[ -z "$lan_dev" ] && lan_dev="$(uci -q get network.@device[0].name)"
+
+# the interface that carries the traffic of the default route
+default_dev=""
+if command -v ip >/dev/null 2>&1; then
+	default_dev="$(ip route show default 2>/dev/null | awk '
+		$1 == "default" {
+			for (i = 1; i < NF; i++)
+				if ($i == "dev") { print $(i + 1); exit }
+		}')"
+fi
+
+stats_iface="$default_dev"
+[ -z "$stats_iface" ] && stats_iface="wan"
+
+# the physical device below the point to point interface
+wan_dev="$(uci -q get network.wan.device)"
+case "$stats_iface" in
+	pppoe-*) [ -n "$wan_dev" ] || wan_dev="${stats_iface#pppoe-}" ;;
+	*)       [ -n "$wan_dev" ] || wan_dev="$stats_iface" ;;
+esac
+
+[ -z "$lan_dev" ] && lan_dev="br-lan"
+[ -z "$wan_dev" ] && wan_dev="wan"
+
+if [ "$current_lan" = "br-lan" ] && [ -n "$lan_dev" ]; then
+	uci -q set "$CONFIG.global.lan_interfaces=$lan_dev"
+fi
+
+if [ "$current_wan" = "wan" ] && [ -n "$wan_dev" ]; then
+	uci -q set "$CONFIG.global.wan_interfaces=$wan_dev"
+fi
+
+if [ "$current_stats" = "pppoe-wan" ] && [ -n "$stats_iface" ]; then
+	uci -q set "$CONFIG.global.stats_iface=$stats_iface"
+fi
+uci -q commit "$CONFIG"
+
+mkdir -p /var/lib/traffic-stats
+mkdir -p /etc/traffic-stats
+
+/etc/init.d/traffic-stats enable >/dev/null 2>&1
+/etc/init.d/rpcd reload >/dev/null 2>&1
+
+exit 0

@@ -1,0 +1,17 @@
+{
+	"luci-app-traffic-stats": {
+		"description": "Grant access to the traffic statistics",
+		"read": {
+			"ubus": {
+				"luci.trafficstats": [ "overview", "devices", "destinations", "history", "config" ]
+			},
+			"uci": [ "traffic-stats" ]
+		},
+		"write": {
+			"ubus": {
+				"luci.trafficstats": [ "setconfig", "restart" ]
+			},
+			"uci": [ "traffic-stats" ]
+		}
+	}
+}

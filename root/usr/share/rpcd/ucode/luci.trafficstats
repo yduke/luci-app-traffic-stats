@@ -1,0 +1,553 @@
+#!/usr/bin/ucode
+//
+// luci.trafficstats - rpcd ucode plugin
+//
+// Provides the ubus object "luci.trafficstats" used by the LuCI
+// application "luci-app-traffic-stats".
+//
+// The collector daemon writes its current state as a JSON document, this
+// plugin exposes that document and the stored history through ubus.
+//
+// Methods:
+//   overview()                          -> current state of the collector
+//   devices({ range })                 -> devices ranked by traffic volume
+//   destinations({ range })            -> most used destinations / domains
+//   history({ range })                 -> traffic series of the given range
+//   config()                           -> current configuration
+//   setconfig({ ... })                 -> update the configuration
+//
+
+'use strict';
+
+import { access, readfile, popen } from 'fs';
+import { cursor } from 'uci';
+
+const CONFIG_NAME = 'traffic-stats';
+const RUNTIME_DIR = '/var/lib/traffic-stats';
+const HISTORY_DIR = '/etc/traffic-stats';
+const LIVE_FILE = RUNTIME_DIR + '/live.json';
+
+const RANGES = {
+	'24h': { seconds: 86400,        devices: 'device_hours.tsv', series: 'minutes.tsv', step: 60 },
+	'7d':  { seconds: 7 * 86400,    devices: 'device_hours.tsv', series: 'hours.tsv',    step: 3600 },
+	'30d': { seconds: 30 * 86400,   devices: 'device_days.tsv',  series: 'days.tsv',    step: 86400 },
+	'1y':  { seconds: 365 * 86400,  devices: 'device_days.tsv',  series: 'days.tsv',    step: 86400 },
+};
+
+function read_json(path) {
+	if (!access(path, 'r'))
+		return null;
+
+	let content = readfile(path);
+
+	if (content == null || content == '')
+		return null;
+
+	try {
+		return json(content);
+	} catch {
+		return null;
+	}
+}
+
+/* read a tab separated history file into a list of field lists */
+function read_tsv(path) {
+	let rows = [];
+
+	if (!access(path, 'r'))
+		return rows;
+
+	let content = readfile(path);
+
+	if (content == null || content == '')
+		return rows;
+
+	let lines = split(content, '\n');
+
+	for (let i = 0; i < length(lines); i++) {
+		let line = lines[i];
+
+		if (line == '' || line == null)
+			continue;
+
+		push(rows, split(line, '\t'));
+	}
+
+	return rows;
+}
+
+function normalise_range(range) {
+	if (range == null || !RANGES[range])
+		return '24h';
+
+	return range;
+}
+
+function now() {
+	return time();
+}
+
+/*
+ * Convert a value into a number, invalid values become zero. A NaN would
+ * break the JSON serialisation of the ubus reply.
+ */
+function to_num(value) {
+	let number = +value;
+
+	if (number != number)
+		return 0;
+
+	return number;
+}
+
+/*
+ * Turn the cumulative counters of the history files into per interval
+ * values, so the chart can draw the traffic of every step.
+ */
+function build_series(range) {
+	let def = RANGES[normalise_range(range)];
+	let file = (def.series == 'minutes.tsv')
+		? RUNTIME_DIR + '/' + def.series
+		: HISTORY_DIR + '/' + def.series;
+	let rows = read_tsv(file);
+	let points = [];
+	let up_total = 0;
+	let down_total = 0;
+	let prev_up = null;
+	let prev_down = null;
+	let prev_ts = null;
+
+	for (let i = 0; i < length(rows); i++) {
+		let f = rows[i];
+
+		if (length(f) < 3)
+			continue;
+
+		let ts = to_num(f[0]);
+		let up = to_num(f[1]);
+		let down = to_num(f[2]);
+
+		if (ts <= 0)
+			continue;
+
+		if (prev_up != null) {
+			let d_up = up - prev_up;
+			let d_down = down - prev_down;
+
+			if (d_up < 0) d_up = 0;
+			if (d_down < 0) d_down = 0;
+
+			up_total += d_up;
+			down_total += d_down;
+
+			push(points, { ts: ts, up: d_up, down: d_down });
+		}
+
+		prev_up = up;
+		prev_down = down;
+		prev_ts = ts;
+	}
+
+	/* the newest interval is still running, add it as a partial step */
+	if (prev_up != null) {
+		let cur_up = 0;
+		let cur_down = 0;
+		let live = read_json(LIVE_FILE);
+
+		if (live != null && live.wan != null) {
+			cur_up = to_num(live.wan.up_bytes);
+			cur_down = to_num(live.wan.down_bytes);
+		}
+
+		if (cur_up > prev_up || cur_down > prev_down) {
+			let d_up = cur_up - prev_up;
+			let d_down = cur_down - prev_down;
+
+			if (d_up > 0) {
+				up_total += d_up;
+				push(points, { ts: prev_ts + def.step, up: d_up, down: d_down });
+			}
+		}
+	}
+
+	return {
+		range: normalise_range(range),
+		step: def.step,
+		points: points,
+		up_total: up_total,
+		down_total: down_total,
+	};
+}
+
+/*
+ * Aggregate the per device history rows of the selected range.
+ */
+function build_devices(range) {
+	let def = RANGES[normalise_range(range)];
+	let file = HISTORY_DIR + '/' + def.devices;
+	let rows = read_tsv(file);
+	let limit = now() - def.seconds;
+	let map = {};
+
+	for (let i = 0; i < length(rows); i++) {
+		let f = rows[i];
+
+		if (length(f) < 5)
+			continue;
+
+		let ts = to_num(f[0]);
+
+		if (ts < limit)
+			continue;
+
+		let mac = f[1];
+		let ip = f[2];
+		let up = to_num(f[3]);
+		let down = to_num(f[4]);
+
+		if (!map[mac])
+			map[mac] = { mac: mac, ip: ip, up: 0, down: 0 };
+
+		map[mac].up += up;
+		map[mac].down += down;
+
+		if (ip != '' && ip != '0')
+			map[mac].ip = ip;
+	}
+
+	let list = [];
+
+	for (let mac in map)
+		push(list, map[mac]);
+
+	sort(list, function(a, b) {
+		return (b.up + b.down) - (a.up + a.down);
+	});
+
+	return list;
+}
+
+/*
+ * Aggregate the per destination history rows of the selected range.
+ */
+function build_destinations(range) {
+	let def = RANGES[normalise_range(range)];
+	let rows = read_tsv(HISTORY_DIR + '/dest_days.tsv');
+	let limit = now() - def.seconds;
+	let map = {};
+
+	for (let i = 0; i < length(rows); i++) {
+		let f = rows[i];
+
+		if (length(f) < 5)
+			continue;
+
+		let ts = to_num(f[0]);
+
+		if (ts < limit)
+			continue;
+
+		let ip = f[1];
+		let domain = f[2];
+		let up = to_num(f[3]);
+		let down = to_num(f[4]);
+		let pkts = (length(f) > 5) ? to_num(f[5]) : 0;
+
+		if (!map[ip])
+			map[ip] = { ip: ip, domain: domain, up: 0, down: 0, pkts: 0 };
+
+		map[ip].up += up;
+		map[ip].down += down;
+		map[ip].pkts += pkts;
+
+		if (domain != '' && map[ip].domain == '')
+			map[ip].domain = domain;
+	}
+
+	let list = [];
+
+	for (let ip in map)
+		push(list, map[ip]);
+
+	sort(list, function(a, b) {
+		return (b.up + b.down) - (a.up + a.down);
+	});
+
+	return list;
+}
+
+function shellquote(s) {
+	return "'" + replace(s, "'", "'\\''") + "'";
+}
+
+function config_get() {
+	let c = cursor();
+	let result = {};
+
+	result.lan_interfaces = c.get(CONFIG_NAME, 'global', 'lan_interfaces') ?? [];
+	result.wan_interfaces = c.get(CONFIG_NAME, 'global', 'wan_interfaces') ?? [];
+	result.stats_iface = c.get(CONFIG_NAME, 'global', 'stats_iface') ?? '';
+	result.sample_interval = to_num(c.get(CONFIG_NAME, 'global', 'sample_interval') ?? 1);
+	result.dns_ttl = to_num(c.get(CONFIG_NAME, 'global', 'dns_ttl') ?? 300);
+	result.count_internal = (c.get(CONFIG_NAME, 'global', 'count_internal') ?? '0') == '1';
+	result.alias = c.get(CONFIG_NAME, 'global', 'alias') ?? [];
+
+	return result;
+}
+
+const methods = {
+	overview: {
+		call: function(request) {
+			let live = read_json(LIVE_FILE);
+			let result = {};
+
+			if (live == null) {
+				result.available = false;
+				result.ts = now();
+				result.devices = [];
+				result.destinations = [];
+				result.domains = [];
+				result.wan = { iface: '', rx_bytes: 0, tx_bytes: 0, rx_rate: 0, tx_rate: 0, up_bytes: 0, down_bytes: 0, up_rate: 0, down_rate: 0 };
+				result.router = { up_bytes: 0, down_bytes: 0 };
+				result.counters = { packets: 0, bytes: 0, errors: 0, dropped: 0 };
+				result.dns = { queries: 0, responses: 0, entries: 0 };
+				result.config = config_get();
+
+				return result;
+			}
+
+			result.available = true;
+			result.ts = live.ts;
+			result.version = live.version;
+			result.uptime = live.uptime;
+			result.interval = live.interval;
+			result.wan = live.wan ?? {};
+			result.router = live.router ?? {};
+			result.devices = live.devices ?? [];
+			result.destinations = live.destinations ?? [];
+			result.domains = live.domains ?? [];
+			result.counters = live.counters ?? {};
+			result.dns = live.dns ?? {};
+			result.interfaces = live.interfaces ?? {};
+			result.config = config_get();
+
+			return result;
+		}
+	},
+
+	devices: {
+		args: { range: '24h' },
+		call: function(request) {
+			let range = normalise_range(request.args?.range);
+			let live = read_json(LIVE_FILE);
+			let result = { range: range, devices: [] };
+
+			if (range == '24h') {
+				/* the last day is served from the hourly history */
+				let hist = build_devices(range);
+
+				if (live != null) {
+					for (let i = 0; i < length(live.devices ?? []); i++) {
+						let d = live.devices[i];
+						let found = null;
+
+						for (let j = 0; j < length(hist); j++) {
+							if (hist[j].mac == d.mac) {
+								found = hist[j];
+								break;
+							}
+						}
+
+						if (found != null) {
+							found.up = to_num(d.up);
+							found.down = to_num(d.down);
+							found.name = d.name;
+							found.ip = d.ip;
+							found.up_rate = d.up_rate;
+							found.down_rate = d.down_rate;
+							found.live = true;
+						} else {
+							push(hist, { mac: d.mac, ip: d.ip, name: d.name, up: to_num(d.up), down: to_num(d.down), up_rate: to_num(d.up_rate), down_rate: to_num(d.down_rate), live: true });
+						}
+					}
+				}
+
+				sort(hist, function(a, b) {
+					return (b.up + b.down) - (a.up + a.down);
+				});
+
+				result.devices = hist;
+			} else {
+				result.devices = build_devices(range);
+			}
+
+			return result;
+		}
+	},
+
+	destinations: {
+		args: { range: '24h' },
+		call: function(request) {
+			let range = normalise_range(request.args?.range);
+			let live = read_json(LIVE_FILE);
+			let result = { range: range, destinations: [], domains: [] };
+			let list = build_destinations(range);
+
+			if (live != null && range == '24h') {
+				for (let i = 0; i < length(live.destinations ?? []); i++) {
+					let d = live.destinations[i];
+					let found = null;
+
+					for (let j = 0; j < length(list); j++) {
+						if (list[j].ip == d.ip) {
+							found = list[j];
+							break;
+						}
+					}
+
+					if (found != null) {
+						found.up = to_num(d.up);
+						found.down = to_num(d.down);
+						found.domain = d.domain;
+						found.up_rate = to_num(d.up_rate);
+						found.down_rate = to_num(d.down_rate);
+					} else {
+						push(list, { ip: d.ip, domain: d.domain, up: to_num(d.up), down: to_num(d.down), up_rate: to_num(d.up_rate), down_rate: to_num(d.down_rate) });
+					}
+				}
+
+				sort(list, function(a, b) {
+					return (b.up + b.down) - (a.up + a.down);
+				});
+			}
+
+			/* group the addresses by domain */
+			let map = {};
+
+			for (let i = 0; i < length(list); i++) {
+				let d = list[i];
+				let key = (d.domain != null && d.domain != '') ? d.domain : d.ip;
+
+				if (!map[key])
+					map[key] = { domain: key, up: 0, down: 0, addresses: 0 };
+
+				map[key].up += to_num(d.up);
+				map[key].down += to_num(d.down);
+				map[key].addresses += 1;
+			}
+
+			let domains = [];
+
+			for (let key in map)
+				push(domains, map[key]);
+
+			sort(domains, function(a, b) {
+				return (b.up + b.down) - (a.up + a.down);
+			});
+
+			result.destinations = list;
+			result.domains = domains;
+
+			return result;
+		}
+	},
+
+	history: {
+		args: { range: '24h' },
+		call: function(request) {
+			return build_series(request.args?.range);
+		}
+	},
+
+	config: {
+		call: function(request) {
+			return { config: config_get() };
+		}
+	},
+
+	restart: {
+		call: function(request) {
+			let proc = popen('/etc/init.d/traffic-stats restart 2>&1');
+			let output = '';
+
+			if (proc != null) {
+				output = proc.read('all');
+				proc.close();
+			}
+
+			return { result: 0, output: output };
+		}
+	},
+
+	setconfig: {
+		args: {
+			lan_interfaces: 'lan_interfaces',
+			wan_interfaces: 'wan_interfaces',
+			stats_iface: 'stats_iface',
+			sample_interval: 'sample_interval',
+			dns_ttl: 'dns_ttl',
+			count_internal: 'count_internal',
+			alias: 'alias'
+		},
+		call: function(request) {
+			let args = request.args ?? {};
+			let cmd = 'uci -q batch <<\'EOF\'\n';
+
+			if (args.lan_interfaces != null) {
+				let list = (type(args.lan_interfaces) == 'array')
+					? args.lan_interfaces
+					: [ args.lan_interfaces ];
+
+				cmd += 'delete traffic-stats.global.lan_interfaces\n';
+				for (let i = 0; i < length(list); i++)
+					cmd += "add_list traffic-stats.global.lan_interfaces=" + shellquote(list[i]) + '\n';
+			}
+
+			if (args.wan_interfaces != null) {
+				let list = (type(args.wan_interfaces) == 'array')
+					? args.wan_interfaces
+					: [ args.wan_interfaces ];
+
+				cmd += 'delete traffic-stats.global.wan_interfaces\n';
+				for (let i = 0; i < length(list); i++)
+					cmd += "add_list traffic-stats.global.wan_interfaces=" + shellquote(list[i]) + '\n';
+			}
+
+			if (args.stats_iface != null)
+				cmd += 'set traffic-stats.global.stats_iface=' + shellquote(args.stats_iface) + '\n';
+
+			if (args.sample_interval != null && +args.sample_interval > 0)
+				cmd += 'set traffic-stats.global.sample_interval=' + (+args.sample_interval) + '\n';
+
+			if (args.dns_ttl != null && +args.dns_ttl > 0)
+				cmd += 'set traffic-stats.global.dns_ttl=' + (+args.dns_ttl) + '\n';
+
+			if (args.count_internal != null)
+				cmd += 'set traffic-stats.global.count_internal=' +
+				       (((args.count_internal == true) || (args.count_internal == '1') || (args.count_internal == 1)) ? '1' : '0') + '\n';
+
+			if (args.alias != null) {
+				let list = (type(args.alias) == 'array')
+					? args.alias
+					: [ args.alias ];
+
+				cmd += 'delete traffic-stats.global.alias\n';
+				for (let i = 0; i < length(list); i++)
+					cmd += "add_list traffic-stats.global.alias=" + shellquote(list[i]) + '\n';
+			}
+
+			cmd += 'commit traffic-stats\nEOF\n';
+
+			let proc = popen(cmd);
+
+			if (proc != null) {
+				proc.read('all');
+				proc.close();
+			}
+
+			return { result: 0, config: config_get() };
+		}
+	},
+};
+
+return { 'luci.trafficstats': methods };

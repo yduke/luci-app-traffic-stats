@@ -1,0 +1,399 @@
+/*
+ * luci-app-traffic-stats - stylesheet
+ *
+ * The layout is built on top of the CSS variables of the LuCI theme, so
+ * the page follows the appearance of the active theme. The Argon theme
+ * switches its palette with the "data-argon-mode" attribute of the root
+ * element, the media query below covers the themes that follow the
+ * system preference instead.
+ */
+
+.ts-root {
+	--ts-down: var(--primary, #5e72e4);
+	--ts-up: var(--danger, #f36c60);
+	--ts-card: var(--card-bg, #ffffff);
+	--ts-card-head: var(--card-accent, rgba(94, 114, 228, 0.1));
+	--ts-text: var(--text-color, #525f7f);
+	--ts-text-strong: var(--text-strong, #323b5f);
+	--ts-border: var(--border-color, #e3e6f0);
+	--ts-bg: var(--bg-gray, #f5f6f8);
+	--ts-shadow: var(--card-shadow, 0 0 1px rgba(0, 0, 0, .12), 0 6px 16px rgba(0, 0, 0, .08));
+	--ts-radius: var(--border-radius, 6px);
+}
+
+/* ---------- toolbar ---------- */
+
+.ts-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 12px;
+	font-size: 13px;
+	color: var(--ts-text);
+}
+
+.ts-status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.ts-dot {
+	display: inline-block;
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--ts-down);
+	box-shadow: 0 0 0 3px var(--ts-card-head);
+}
+
+.ts-info {
+	opacity: .8;
+}
+
+/* ---------- tabs ---------- */
+
+.ts-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-bottom: 14px;
+	border-bottom: 1px solid var(--ts-border);
+}
+
+.ts-tab {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	color: var(--ts-text);
+	cursor: pointer;
+	font-size: 14px;
+	margin: 0;
+	padding: 8px 14px;
+	transition: color .15s ease, border-color .15s ease;
+}
+
+.ts-tab:hover {
+	color: var(--ts-text-strong);
+}
+
+.ts-tab-active {
+	color: var(--ts-down);
+	border-bottom-color: var(--ts-down);
+	font-weight: 600;
+}
+
+.ts-pane {
+	display: none;
+}
+
+.ts-pane-active {
+	display: block;
+}
+
+/* ---------- cards ---------- */
+
+.ts-card {
+	background: var(--ts-card);
+	border: 1px solid var(--ts-border);
+	border-radius: var(--ts-radius);
+	box-shadow: var(--ts-shadow);
+	margin-bottom: 14px;
+	padding: 14px 16px;
+}
+
+.ts-card-title {
+	color: var(--ts-text-strong);
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.ts-card-desc {
+	color: var(--ts-text);
+	font-size: 12px;
+	margin-bottom: 10px;
+	opacity: .85;
+}
+
+.ts-empty {
+	color: var(--ts-text);
+	font-size: 13px;
+	opacity: .7;
+	padding: 12px 0;
+}
+
+/* ---------- statistic boxes ---------- */
+
+.ts-grid {
+	display: grid;
+	gap: 12px;
+}
+
+.ts-grid-2 {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ts-grid-4 {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 800px) {
+	.ts-grid-4 {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 480px) {
+	.ts-grid-2,
+	.ts-grid-4 {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.ts-stat {
+	background: var(--ts-card);
+	border: 1px solid var(--ts-border);
+	border-left: 3px solid var(--ts-border);
+	border-radius: var(--ts-radius);
+	box-shadow: var(--ts-shadow);
+	padding: 12px 14px;
+}
+
+.ts-stat.ts-down {
+	border-left-color: var(--ts-down);
+}
+
+.ts-stat.ts-up {
+	border-left-color: var(--ts-up);
+}
+
+.ts-stat-label {
+	color: var(--ts-text);
+	font-size: 12px;
+	opacity: .85;
+	text-transform: uppercase;
+	letter-spacing: .03em;
+}
+
+.ts-stat-value {
+	align-items: baseline;
+	display: flex;
+	gap: 5px;
+}
+
+.ts-stat-number {
+	color: var(--ts-text-strong);
+	font-size: 22px;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.ts-stat-unit {
+	color: var(--ts-text);
+	font-size: 13px;
+}
+
+.ts-stat-sub {
+	color: var(--ts-text);
+	font-size: 11px;
+	opacity: .7;
+}
+
+/* ---------- chart ---------- */
+
+.ts-chart-wrap {
+	position: relative;
+	width: 100%;
+}
+
+.ts-chart {
+	display: block;
+	height: 260px;
+	width: 100%;
+}
+
+.ts-grid-line,
+.ts-grid {
+	stroke: var(--ts-border);
+	stroke-width: 1;
+}
+
+.ts-axis {
+	fill: var(--ts-text);
+	font-size: 11px;
+	opacity: .75;
+}
+
+.ts-line {
+	fill: none;
+	stroke-width: 2;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+	vector-effect: non-scaling-stroke;
+}
+
+.ts-line-down {
+	stroke: var(--ts-down);
+}
+
+.ts-line-up {
+	stroke: var(--ts-up);
+}
+
+.ts-area {
+	stroke: none;
+}
+
+.ts-area-down {
+	fill: var(--ts-down);
+	opacity: .16;
+}
+
+.ts-area-up {
+	fill: var(--ts-up);
+	opacity: .16;
+}
+
+.ts-legend {
+	display: flex;
+	gap: 16px;
+	margin-bottom: 6px;
+}
+
+.ts-legend-item {
+	align-items: center;
+	color: var(--ts-text);
+	display: inline-flex;
+	font-size: 12px;
+	gap: 6px;
+}
+
+.ts-legend-item::before {
+	border-radius: 2px;
+	content: "";
+	display: inline-block;
+	height: 10px;
+	width: 10px;
+}
+
+.ts-legend-down::before {
+	background: var(--ts-down);
+}
+
+.ts-legend-up::before {
+	background: var(--ts-up);
+}
+
+/* ---------- tables ---------- */
+
+.ts-table-wrap {
+	overflow-x: auto;
+}
+
+.ts-table {
+	border-collapse: collapse;
+	width: 100%;
+	font-size: 13px;
+}
+
+.ts-table th {
+	color: var(--ts-text);
+	font-size: 12px;
+	font-weight: 600;
+	opacity: .85;
+	padding: 7px 10px;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.ts-table td {
+	border-top: 1px solid var(--ts-border);
+	color: var(--ts-text-strong);
+	padding: 7px 10px;
+	white-space: nowrap;
+}
+
+.ts-table .ts-num {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.ts-table tbody tr:hover td {
+	background: var(--ts-bg);
+}
+
+.ts-row-live td:first-child {
+	font-weight: 600;
+}
+
+/* ---------- button row ---------- */
+
+.ts-button-row {
+	display: flex;
+	gap: 8px;
+	margin-top: 6px;
+}
+
+/* ---------- range selector ---------- */
+.ts-range {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.ts-range-btn {
+	appearance: none;
+	background: var(--ts-bg);
+	border: 1px solid var(--ts-border);
+	border-radius: var(--ts-radius);
+	color: var(--ts-text);
+	cursor: pointer;
+	font-size: 12px;
+	margin: 0;
+	padding: 5px 12px;
+	transition: background .15s ease, color .15s ease;
+}
+
+.ts-range-btn:hover {
+	color: var(--ts-text-strong);
+}
+
+.ts-range-active {
+	background: var(--ts-down);
+	border-color: var(--ts-down);
+	color: #fff;
+}
+
+/* ---------- Argon dark mode ---------- */
+
+:root[data-argon-mode="dark"] .ts-root {
+	--ts-card: var(--card-bg, #262e4f);
+	--ts-text: var(--text-color, #ccc);
+	--ts-text-strong: var(--text-strong, #e6e6e6);
+	--ts-border: var(--border-color, #333d64);
+	--ts-bg: var(--bg-gray, #1a2035);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-argon-mode="light"]):not([data-argon-mode="dark"]) .ts-root {
+		--ts-card: var(--card-bg, #262e4f);
+		--ts-text: var(--text-color, #ccc);
+		--ts-text-strong: var(--text-strong, #e6e6e6);
+		--ts-border: var(--border-color, #333d64);
+		--ts-bg: var(--bg-gray, #1a2035);
+	}
+}
+
+/* older Argon releases mark the dark mode on the body element */
+body.dark .ts-root,
+html[data-darkmode="true"] .ts-root {
+	--ts-card: var(--card-bg, #262e4f);
+	--ts-text: var(--text-color, #ccc);
+	--ts-text-strong: var(--text-strong, #e6e6e6);
+	--ts-border: var(--border-color, #333d64);
+	--ts-bg: var(--bg-gray, #1a2035);
+}

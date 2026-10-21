@@ -1,0 +1,11 @@
+# build artefacts
+dist/
+*.o
+*.ipk
+*.apk
+src/traffic-stats
+
+# editor and operating system files
+*~
+*.swp
+.DS_Store

@@ -1,0 +1,27 @@
+# Configuration of the traffic statistics collector
+#
+# The collector reads the traffic that crosses the router with a read only
+# packet socket. No firewall rule, route or DNS setting is ever modified.
+#
+# lan_interfaces   interfaces that face the local network, the traffic of
+#                  every device is attributed here
+# wan_interfaces   interfaces that face the internet, they provide the
+#                  total traffic volume and the destination statistics
+# stats_iface      interface whose counters are shown as the WAN total
+# sample_interval  length of a sampling interval in seconds
+# dns_ttl          lifetime of a learned domain name in seconds
+# count_internal   also count the traffic between the local devices
+# history_days     number of days the daily statistics are kept
+#
+# alias            optional friendly name for a device, the format is
+#                  "mac address=name", for example
+#                  list alias 'b0:7b:25:44:b1:16=Living room TV'
+
+config global 'global'
+	option lan_interfaces 'br-lan'
+	option wan_interfaces 'wan'
+	option stats_iface 'pppoe-wan'
+	option sample_interval '1'
+	option dns_ttl '300'
+	option count_internal '0'
+	option history_days '400'
