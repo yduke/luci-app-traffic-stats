@@ -58,6 +58,8 @@ var callNetworkDevices = rpc.declare({
 	expect: { '': {} }
 });
 
+var APP_VERSION = '1.0.0';
+
 var POLL_INTERVAL = 2;
 var POLL_IDLE_INTERVAL = 15;
 var LIVE_SAMPLES = 150;
@@ -327,11 +329,14 @@ return view.extend({
 			link.rel = 'stylesheet';
 			link.type = 'text/css';
 			link.setAttribute('data-traffic-stats-css', '1');
-			link.href = L.resource('traffic-stats/traffic-stats.css');
+			link.href = L.resource('traffic-stats/traffic-stats.css') + '?v=' + APP_VERSION;
 			document.head.appendChild(link);
 		}
 
 		var container = E('div', { 'class': 'ts-root' });
+		var content = E('div', { 'class': 'ts-content' });
+
+		container.appendChild(content);
 
 		/* ---------------- status bar ---------------- */
 
@@ -343,16 +348,12 @@ return view.extend({
 
 		var infoBox = E('div', { 'class': 'ts-info' });
 
-		container.appendChild(E('div', { 'class': 'ts-toolbar' }, [
-			statusBox,
-			infoBox
-		]));
-
 		/* ---------------- tabs ---------------- */
 
-		var tabs = E('div', { 'class': 'ts-tabs' });
-		var panes = E('div', { 'class': 'ts-panes' });
-
+		/*
+		 * The tab panes use the standard LuCI mechanism, the theme
+		 * renders the tab menu of the page in its own navigation bar.
+		 */
 		var tabDefs = [
 			{ id: 'overview', title: _('Overview') },
 			{ id: 'devices', title: _('Devices') },
@@ -362,35 +363,9 @@ return view.extend({
 		];
 
 		var paneMap = {};
+		var paneNodes = [];
 
-		tabDefs.forEach(function(def) {
-			var button = E('button', {
-				'type': 'button',
-				'class': 'ts-tab',
-				'data-tab': def.id,
-				click: function() {
-					selectTab(def.id);
-				}
-			}, def.title);
-
-			tabs.appendChild(button);
-
-			var pane = E('div', { 'class': 'ts-pane', 'data-pane': def.id });
-			paneMap[def.id] = pane;
-			panes.appendChild(pane);
-		});
-
-		function selectTab(id) {
-			state.tab = id;
-
-			tabs.querySelectorAll('.ts-tab').forEach(function(btn) {
-				btn.classList.toggle('ts-tab-active', btn.getAttribute('data-tab') === id);
-			});
-
-			Object.keys(paneMap).forEach(function(key) {
-				paneMap[key].classList.toggle('ts-pane-active', key === id);
-			});
-
+		function onTabActivated(id) {
 			if (id === 'devices')
 				refreshDevices();
 			else if (id === 'destinations')
@@ -399,8 +374,28 @@ return view.extend({
 				refreshHistory();
 		}
 
-		container.appendChild(tabs);
-		container.appendChild(panes);
+		/* the status is shown below the tab menu of the page */
+		content.appendChild(E('div', { 'class': 'ts-toolbar' }, [
+			statusBox,
+			infoBox
+		]));
+
+		tabDefs.forEach(function(def) {
+			var pane = E('div', {
+				'class': 'ts-pane',
+				'data-tab': def.id,
+				'data-tab-title': def.title,
+				'data-tab-active': (def.id == 'overview') ? 'true' : null
+			});
+
+			pane.addEventListener('cbi-tab-active', function() {
+				onTabActivated(def.id);
+			});
+
+			paneMap[def.id] = pane;
+			paneNodes.push(pane);
+			content.appendChild(pane);
+		});
 
 		/* ---------------- overview pane ---------------- */
 
@@ -963,7 +958,7 @@ return view.extend({
 
 		setPollInterval(POLL_INTERVAL);
 
-		selectTab('overview');
+		/* the overview is the active tab of the page */
 		refreshOverview();
 		refreshDevices();
 		refreshDestinations();
@@ -972,6 +967,9 @@ return view.extend({
 		this.refreshDestinations = refreshDestinations;
 		this.refreshHistory = refreshHistory;
 		this.refreshOverview = refreshOverview;
+
+		/* the tab menu is built when the panes are filled */
+		ui.tabs.initTabGroup(paneNodes);
 
 		return container;
 	},

@@ -24,29 +24,46 @@
 /* ---------- toolbar ---------- */
 
 .ts-toolbar {
-	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	background: var(--ts-card);
+	border: 1px solid var(--ts-border);
+	border-left: 3px solid var(--ts-down);
+	border-radius: var(--ts-radius);
+	box-shadow: var(--ts-shadow);
+	color: var(--ts-text-strong);
+	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
-	margin-bottom: 12px;
 	font-size: 13px;
-	color: var(--ts-text);
+	gap: 8px;
+	justify-content: space-between;
+	margin: 10px 0 14px 0;
+	padding: 9px 14px;
 }
 
 .ts-status {
-	display: flex;
 	align-items: center;
+	color: var(--ts-text-strong);
+	display: flex;
+	font-weight: 600;
 	gap: 8px;
 }
 
+.ts-status-text {
+	color: var(--ts-text-strong);
+}
+
+.ts-info {
+	color: var(--ts-text);
+	opacity: 1;
+}
+
 .ts-dot {
-	display: inline-block;
-	width: 9px;
-	height: 9px;
-	border-radius: 50%;
 	background: var(--ts-down);
+	border-radius: 50%;
 	box-shadow: 0 0 0 3px var(--ts-card-head);
+	display: inline-block;
+	height: 9px;
+	width: 9px;
 }
 
 .ts-status[data-error] .ts-dot {
@@ -57,49 +74,27 @@
 	color: var(--ts-up);
 }
 
-.ts-info {
-	opacity: .8;
-}
+/* ---------- tab panes ---------- */
 
-/* ---------- tabs ---------- */
+/*
+ * The tab menu of the page is built by the LuCI ui module, the theme
+ * renders it above the content and hides the inactive panes.
+ */
 
-.ts-tabs {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 4px;
+.ts-content > * {
 	margin-bottom: 14px;
-	border-bottom: 1px solid var(--ts-border);
 }
 
-.ts-tab {
-	appearance: none;
-	background: transparent;
-	border: 0;
-	border-bottom: 2px solid transparent;
-	color: var(--ts-text);
-	cursor: pointer;
-	font-size: 14px;
-	margin: 0;
-	padding: 8px 14px;
-	transition: color .15s ease, border-color .15s ease;
+.ts-content > *:last-child {
+	margin-bottom: 0;
 }
 
-.ts-tab:hover {
-	color: var(--ts-text-strong);
+.ts-pane > * {
+	margin-bottom: 14px;
 }
 
-.ts-tab-active {
-	color: var(--ts-down);
-	border-bottom-color: var(--ts-down);
-	font-weight: 600;
-}
-
-.ts-pane {
-	display: none;
-}
-
-.ts-pane-active {
-	display: block;
+.ts-pane > *:last-child {
+	margin-bottom: 0;
 }
 
 /* ---------- cards ---------- */

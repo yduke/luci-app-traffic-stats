@@ -38,8 +38,10 @@ function E(tag, attrs, children) {
 			return;
 		if (typeof child === 'string' || typeof child === 'number')
 			node.text += String(child);
-		else if (child.children)
+		else if (child.children) {
+			child.parentNode = node;
 			node.children.push(child);
+		}
 	});
 
 	node.querySelector = function(selector) {
@@ -62,7 +64,21 @@ function E(tag, attrs, children) {
 		if (!child || typeof child !== 'object' || child.tag === undefined)
 			throw new TypeError("Failed to execute 'appendChild' on 'Node': parameter 1 is not of type 'Node'.");
 
+		child.parentNode = node;
 		node.children.push(child);
+		return child;
+	};
+
+	node.insertBefore = function(child, ref) {
+		child.parentNode = node;
+
+		let index = node.children.indexOf(ref);
+
+		if (index < 0)
+			node.children.push(child);
+		else
+			node.children.splice(index, 0, child);
+
 		return child;
 	};
 
@@ -101,6 +117,20 @@ function E(tag, attrs, children) {
 	};
 	node.className = (attrs && attrs['class']) || '';
 	node.isConnected = true;
+
+	/* event handling */
+	node.listeners = {};
+	node.addEventListener = function(name, fn) {
+		(this.listeners[name] = this.listeners[name] || []).push(fn);
+	};
+	node.removeEventListener = function(name, fn) {
+		let list = this.listeners[name] || [];
+
+		this.listeners[name] = list.filter(function(entry) { return entry !== fn; });
+	};
+	node.dispatchEvent = function(ev) {
+		(this.listeners[ev.type] || []).forEach(function(fn) { fn(ev); });
+	};
 
 	return node;
 }
@@ -205,6 +235,39 @@ const poll = {
 				this.queue.splice(i - 1, 1);
 
 		return this.queue.length != len;
+	}
+};
+
+const ui = {
+	tabs: {
+		/* mirrors the tab menu creation of the LuCI ui module */
+		initTabGroup: function(panes) {
+			if (!panes || !panes.length)
+				return;
+
+			const group = panes[0].parentNode;
+			const menu = E('ul', { 'class': 'cbi-tabmenu' });
+			let selected = null;
+
+			panes.forEach(function(pane, index) {
+				const name = pane.getAttribute('data-tab');
+				const title = pane.getAttribute('data-tab-title');
+				const active = pane.getAttribute('data-tab-active') === 'true';
+
+				menu.appendChild(E('li', {
+					'class': active ? 'cbi-tab' : 'cbi-tab-disabled',
+					'data-tab': name
+				}, E('a', { 'href': '#' }, title)));
+
+				if (active)
+					selected = index;
+			});
+
+			group.parentNode.insertBefore(menu, group);
+			group.setAttribute('data-initialized', 'true');
+
+			calls.tabmenu = menu;
+		}
 	}
 };
 
@@ -351,7 +414,7 @@ function historyData() {
 
 const source = fs.readFileSync(VIEW, 'utf8');
 const factory = new Function('view', 'rpc', 'poll', 'uci', 'ui', 'form', 'L', source);
-const proto = factory(view, rpc, poll, uci, {}, form, L);
+const proto = factory(view, rpc, poll, uci, ui, form, L);
 
 assert.ok(proto, 'the view module returned nothing');
 assert.ok(typeof proto.render === 'function', 'the view has no render function');
@@ -387,6 +450,10 @@ return Promise.resolve(calls.poll[0].fn()).then(function() {
 	let live = findAll(charts[0], '.ts-line');
 
 	assert.ok(live.length > 0, 'the live chart has no series');
+
+	/* the tab menu of the theme has to be created */
+	assert.ok(calls.tabmenu, 'the tab menu was not created');
+	assert.strictEqual(calls.tabmenu.children.length, 5, 'the tab menu is incomplete');
 
 	/* the history chart is drawn when the tab is opened */
 	return Promise.resolve(instance.refreshHistory()).then(function() {
