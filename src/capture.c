@@ -51,14 +51,14 @@ static int open_socket(const char *name, int role)
 
 	fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (fd < 0) {
-		ts_log("cannot open packet socket for %s: %s", name, strerror(errno));
+		ts_log_err("cannot open packet socket for %s: %s", name, strerror(errno));
 		return -1;
 	}
 
 	memset(&ifr, 0, sizeof(ifr));
 	snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), "%s", name);
 	if (ioctl(fd, SIOCGIFINDEX, &ifr) < 0) {
-		ts_log("interface %s not found", name);
+		ts_log_err("interface %s not found", name);
 		close(fd);
 		return -1;
 	}
@@ -69,13 +69,31 @@ static int open_socket(const char *name, int role)
 	sll.sll_ifindex = ifr.ifr_ifindex;
 
 	if (bind(fd, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
-		ts_log("cannot bind to %s: %s", name, strerror(errno));
+		ts_log_err("cannot bind to %s: %s", name, strerror(errno));
 		close(fd);
 		return -1;
 	}
 
+	/*
+	 * A burst must not overflow the socket buffer. net.core.rmem_max is
+	 * only 256 kB on a typical router and would silently cap the request,
+	 * SO_RCVBUFFORCE bypasses that limit (the daemon runs as root).
+	 */
 	rcvbuf = 4 * 1024 * 1024;
-	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf));
+
+	if (setsockopt(fd, SOL_SOCKET, SO_RCVBUFFORCE, &rcvbuf, sizeof(rcvbuf)) < 0 &&
+	    setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf)) < 0)
+		ts_log("warning: cannot enlarge the capture buffer of %s: %s",
+		       name, strerror(errno));
+
+	{
+		socklen_t slen = sizeof(rcvbuf);
+
+		if (getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, &slen) == 0 &&
+		    rcvbuf < 1024 * 1024)
+			ts_log("warning: %s only got a %d byte capture buffer",
+			       name, rcvbuf);
+	}
 
 	memset(&socks[sock_count], 0, sizeof(socks[sock_count]));
 	socks[sock_count].fd = fd;
@@ -102,6 +120,29 @@ int capture_open(struct state *st)
 	return sock_count;
 }
 
+/*
+ * The kernel drops packets when the socket buffer is full. The counter is
+ * reset on every read, so the values are accumulated. Without it the
+ * "dropped" field of the snapshot was always zero, even when the collector
+ * could not keep up with the traffic.
+ */
+void capture_read_stats(struct state *st)
+{
+	int i;
+
+	for (i = 0; i < sock_count; i++) {
+		struct tpacket_stats stats;
+		socklen_t len = sizeof(stats);
+
+		if (socks[i].fd < 0)
+			continue;
+
+		if (getsockopt(socks[i].fd, SOL_PACKET, PACKET_STATISTICS,
+			       &stats, &len) == 0)
+			st->dropped += stats.tp_drops;
+	}
+}
+
 void capture_close(struct state *st)
 {
 	int i;
@@ -124,7 +165,13 @@ void capture_close(struct state *st)
 	sock_count = 0;
 }
 
-static int have_wan_socket(void)
+/*
+ * Tell the rest of the daemon whether the WAN side is really captured. The
+ * configured interface may be missing at boot (a PPPoE session is created
+ * late), in that case the LAN side is the only source of the totals and the
+ * snapshot must not report the empty WAN counters.
+ */
+int capture_wan_active(void)
 {
 	int i;
 
@@ -185,10 +232,20 @@ static void account_packet(struct state *st, int role, const uint8_t *eth_src,
 		count_dst = 1;
 	} else if (src_local && dst_local && st->cfg.count_internal) {
 		st->pkts_int++;
+
+		/* both ends of an internal flow are part of the traffic */
 		if (role == ROLE_LAN && eth_src != NULL) {
 			dev = device_get(st, eth_src, src4);
 			if (dev != NULL) {
 				dev->up_int += bytes;
+				dev->last = ts_now();
+			}
+		}
+
+		if (role == ROLE_LAN && eth_dst != NULL) {
+			dev = device_get(st, eth_dst, dst4);
+			if (dev != NULL) {
+				dev->down_int += bytes;
 				dev->last = ts_now();
 			}
 		}
@@ -201,7 +258,7 @@ static void account_packet(struct state *st, int role, const uint8_t *eth_src,
 	 * contains every byte that leaves the router. When no WAN interface
 	 * can be captured the LAN side is used instead.
 	 */
-	if (count_dst && dst4 != 0 && (role == ROLE_WAN || !have_wan_socket())) {
+	if (count_dst && dst4 != 0 && (role == ROLE_WAN || !capture_wan_active())) {
 		uint32_t peer = (src_local && !dst_local) ? dst4 : src4;
 
 		d = dest_get(st, peer);
@@ -219,6 +276,19 @@ static void account_packet(struct state *st, int role, const uint8_t *eth_src,
 
 	if (is_dns && l4 != NULL && l4len > 0)
 		dns_parse_packet(st, l4, l4len, is_tcp, from_client);
+}
+
+/*
+ * Multicast, broadcast and the unspecified address are link local by
+ * definition, they are never internet traffic. The router also receives such
+ * frames from the other side of the WAN (router advertisements, DHCP), which
+ * would otherwise be counted as download and even invent devices with a
+ * multicast MAC address.
+ */
+static int is_group4(uint32_t ip)
+{
+	return (ip == 0 || ip == 0xffffffffu ||
+		(ntohl(ip) & 0xf0000000u) == 0xe0000000u);
 }
 
 static void handle_frame(struct state *st, struct cap_socket *cs, unsigned char *buf, ssize_t len)
@@ -274,6 +344,9 @@ static void handle_frame(struct state *st, struct cap_socket *cs, unsigned char 
 		ip6 = buf + off;
 		payload = ntohs(*(uint16_t *)(ip6 + 4));
 		next = ip6[6];
+
+		if (ip6[8] == 0xff || ip6[24] == 0xff)
+			return;
 
 		src_local = is_local6(st, ip6 + 8);
 		dst_local = is_local6(st, ip6 + 24);
@@ -332,6 +405,9 @@ static void handle_frame(struct state *st, struct cap_socket *cs, unsigned char 
 		ipproto = ip[9];
 
 		payload = tot - ihl;
+
+		if (is_group4(src) || is_group4(dst))
+			return;
 
 		if (ipproto == IPPROTO_UDP || ipproto == IPPROTO_TCP) {
 			size_t l4off = off + ihl;
@@ -401,7 +477,7 @@ static void *capture_thread(void *arg)
 
 	batch = calloc(PKT_BATCH_MAX, sizeof(*batch));
 	if (batch == NULL) {
-		ts_log("cannot allocate the packet batch");
+		ts_log_err("cannot allocate the packet batch");
 		return NULL;
 	}
 
@@ -492,7 +568,7 @@ void capture_run(struct state *st)
 		return;
 
 	if (pthread_create(&capture_tid, NULL, capture_thread, st) != 0)
-		ts_log("cannot start capture thread: %s", strerror(errno));
+		ts_log_err("cannot start capture thread: %s", strerror(errno));
 	else
 		pthread_detach(capture_tid);
 }

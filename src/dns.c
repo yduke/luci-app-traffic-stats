@@ -184,10 +184,17 @@ int dns_parse_packet(struct state *st, const uint8_t *payload, size_t len, int i
 			ip = (uint32_t)payload[pos] | ((uint32_t)payload[pos + 1] << 8) |
 			     ((uint32_t)payload[pos + 2] << 16) | ((uint32_t)payload[pos + 3] << 24);
 
-			if (ttl == 0 || ttl > (unsigned int)st->cfg.dns_ttl)
-				ttl = (unsigned int)st->cfg.dns_ttl;
-
-			dns_learn(st, ip, name, ts_now() + (time_t)ttl);
+			/*
+			 * The TTL of the record says how long a resolver may
+			 * cache the answer, it does not say how long the name
+			 * is useful for the statistics. A short record TTL
+			 * would drop almost every name within minutes and the
+			 * traffic could not be labelled any more. The name is
+			 * kept for the configured lifetime, a new answer for
+			 * the same address replaces it immediately.
+			 */
+			(void)ttl;
+			dns_learn(st, ip, name, ts_now() + (time_t)st->cfg.dns_ttl);
 		}
 
 		pos += rdlen;

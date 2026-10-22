@@ -9,7 +9,7 @@
 #                  total traffic volume and the destination statistics
 # stats_iface      interface whose counters are shown as the WAN total
 # sample_interval  length of a sampling interval in seconds
-# dns_ttl          lifetime of a learned domain name in seconds
+# dns_ttl          how long a learned domain name is remembered, in seconds
 # count_internal   also count the traffic between the local devices
 # history_days     number of days the daily statistics are kept
 #
@@ -21,6 +21,6 @@ config global 'global'
 	list wan_interfaces 'wan'
 	option stats_iface 'pppoe-wan'
 	option sample_interval '1'
-	option dns_ttl '300'
+	option dns_ttl '86400'
 	option count_internal '0'
 	option history_days '400'

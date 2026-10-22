@@ -2,9 +2,12 @@
  * luci-app-traffic-stats - configuration, logging and small helpers
  */
 
+#include <arpa/inet.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "ts.h"
@@ -14,16 +17,52 @@ uint32_t ts_now(void)
 	return (uint32_t)time(NULL);
 }
 
+/*
+ * Format an IPv4 address that is stored in network byte order. Every file
+ * and every interface of the application has to use it, a raw %u prints a
+ * decimal number that no one can read.
+ */
+void ts_fmt_ip(uint32_t ip, char *buf, size_t len)
+{
+	struct in_addr a;
+
+	a.s_addr = ip;
+	snprintf(buf, len, "%s", inet_ntoa(a));
+}
+
+/*
+ * Log through syslog with a proper priority. Writing to stderr instead
+ * marks every line as an error, the normal messages of a collector are
+ * not errors and must not fill the log.
+ */
+static void log_msg(int prio, const char *fmt, va_list ap)
+{
+	static int opened;
+
+	if (!opened) {
+		openlog("traffic-stats", LOG_PID, LOG_DAEMON);
+		opened = 1;
+	}
+
+	vsyslog(prio, fmt, ap);
+}
+
 void ts_log(const char *fmt, ...)
 {
 	va_list ap;
 
-	fprintf(stderr, "traffic-stats: ");
 	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
+	log_msg(LOG_INFO, fmt, ap);
 	va_end(ap);
-	fprintf(stderr, "\n");
-	fflush(stderr);
+}
+
+void ts_log_err(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	log_msg(LOG_ERR, fmt, ap);
+	va_end(ap);
 }
 
 static void set_str(char *dst, size_t len, const char *src)
@@ -95,7 +134,7 @@ int ts_load_config(struct state *st)
 	set_str(st->cfg.history_dir, sizeof(st->cfg.history_dir), "/etc/traffic-stats");
 	set_str(st->cfg.lease_file, sizeof(st->cfg.lease_file), "/tmp/dhcp.leases");
 	st->cfg.sample_interval = 1;
-	st->cfg.dns_ttl = 300;
+	st->cfg.dns_ttl = 86400;
 	st->cfg.count_internal = 0;
 	st->cfg.history_days = 400;
 	st->cfg.verbose = 0;

@@ -138,6 +138,8 @@ int main(int argc, char **argv)
 	struct state *st;
 	struct sigaction sa;
 	time_t last_tick = 0;
+	time_t last_lock_warning = 0;
+	time_t last_prefix = 0;
 	char snapshot[256];
 	int daemonize = 1;
 	int i;
@@ -177,35 +179,36 @@ int main(int argc, char **argv)
 	st->last_day = 0;
 
 	local_init(st);
+	last_prefix = ts_now();
 	devices_init(st);
 	store_init(st);
 	store_prune(st);
 
 	if (capture_open(st) == 0) {
-		ts_log("no capture interface available, only interface counters are used");
+		ts_log_err("no capture interface available, only interface counters are used");
 	} else {
 		capture_run(st);
 	}
 
 	snprintf(snapshot, sizeof(snapshot), "%s/live.json", st->cfg.runtime_dir);
 
-	ts_log("started, lan=[");
-	for (i = 0; i < st->cfg.lan_count; i++)
-		ts_log("%s%s", (i > 0) ? " " : "", st->cfg.lan_ifaces[i]);
-	ts_log("] wan=[");
-	for (i = 0; i < st->cfg.wan_count; i++)
-		ts_log("%s%s", (i > 0) ? " " : "", st->cfg.wan_ifaces[i]);
-	ts_log("]");
+	ts_log("started, lan=[%s] wan=[%s]",
+	       st->cfg.lan_ifaces[0], st->cfg.wan_ifaces[0]);
 
 	while (keep_running) {
 		struct timespec sleep_time;
-		struct timespec lock_timeout;
+		struct timespec lock_deadline;
 		time_t now;
 		unsigned int dt;
 
-		sleep_time.tv_sec = 0;
-		sleep_time.tv_nsec = (long)st->cfg.sample_interval * 100000000L;
-		nanosleep(&sleep_time, NULL);
+		/* the sampling interval is configured in seconds */
+		sleep_time.tv_sec = st->cfg.sample_interval;
+		sleep_time.tv_nsec = 0;
+
+		while (nanosleep(&sleep_time, &sleep_time) != 0) {
+			if (errno != EINTR || !keep_running)
+				break;
+		}
 
 		if (!keep_running)
 			break;
@@ -221,19 +224,41 @@ int main(int argc, char **argv)
 			dt = 1;
 
 		/*
-		 * A timeout keeps the daemon responsive, a collector that
-		 * cannot write its snapshots is a broken collector.
+		 * pthread_mutex_timedlock expects an absolute time, a
+		 * relative value silently expires in 1970 and the lock is
+		 * never waited for.
 		 */
-		lock_timeout.tv_sec = 10;
-		lock_timeout.tv_nsec = 0;
+		clock_gettime(CLOCK_REALTIME, &lock_deadline);
+		lock_deadline.tv_sec += TS_LOCK_TIMEOUT;
 
-		if (pthread_mutex_timedlock(&st->lock, &lock_timeout) != 0) {
-			ts_log("timeout while writing the snapshot, the collector is overloaded");
+		if (pthread_mutex_timedlock(&st->lock, &lock_deadline) != 0) {
+			/*
+			 * The batch accounting holds the lock for a very
+			 * short time, a real timeout means the collector is
+			 * in trouble. Do not repeat that every interval.
+			 */
+			if (now - last_lock_warning >= 60) {
+				ts_log_err("cannot acquire the state lock within %d seconds",
+					   TS_LOCK_TIMEOUT);
+				last_lock_warning = now;
+			}
+
 			last_tick = now;
 			continue;
 		}
 
+		/*
+		 * The local prefixes decide what is internal and what is an
+		 * internet peer. They change with every PPPoE re-dial, a
+		 * stale list would silently drop the traffic of the router.
+		 */
+		if (now - last_prefix >= 60) {
+			local_init(st);
+			last_prefix = now;
+		}
+
 		read_net_counters(st);
+		capture_read_stats(st);
 		update_rates(st, dt);
 		dns_expire(st);
 		local_refresh(st);

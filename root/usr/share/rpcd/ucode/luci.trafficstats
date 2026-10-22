@@ -32,10 +32,10 @@ const LIVE_FILE = RUNTIME_DIR + '/live.json';
 const INIT_SCRIPT = '/etc/init.d/traffic-stats';
 
 const RANGES = {
-	'24h': { seconds: 86400,        devices: 'device_hours.tsv', series: 'minutes.tsv', step: 60 },
-	'7d':  { seconds: 7 * 86400,    devices: 'device_hours.tsv', series: 'hours.tsv',    step: 3600 },
-	'30d': { seconds: 30 * 86400,   devices: 'device_days.tsv',  series: 'days.tsv',    step: 86400 },
-	'1y':  { seconds: 365 * 86400,  devices: 'device_days.tsv',  series: 'days.tsv',    step: 86400 },
+	'24h': { seconds: 86400,        devices: 'device_hours.tsv', dests: 'dest_hours.tsv', series: 'minutes.tsv', step: 60 },
+	'7d':  { seconds: 7 * 86400,    devices: 'device_hours.tsv', dests: 'dest_hours.tsv', series: 'hours.tsv',    step: 3600 },
+	'30d': { seconds: 30 * 86400,   devices: 'device_days.tsv',  dests: 'dest_days.tsv',  series: 'days.tsv',    step: 86400 },
+	'1y':  { seconds: 365 * 86400,  devices: 'device_days.tsv',  dests: 'dest_days.tsv',  series: 'days.tsv',    step: 86400 },
 };
 
 function read_json(path) {
@@ -114,6 +114,7 @@ function build_series(range) {
 		? RUNTIME_DIR + '/' + def.series
 		: HISTORY_DIR + '/' + def.series;
 	let rows = read_tsv(file);
+	let limit = now() - def.seconds;
 	let points = [];
 	let up_total = 0;
 	let down_total = 0;
@@ -134,6 +135,26 @@ function build_series(range) {
 		if (ts <= 0)
 			continue;
 
+		/*
+		 * A row before the selected range is only useful as the
+		 * baseline of the first row inside it. Without this filter the
+		 * chart and its totals showed everything the file still held,
+		 * which is up to seven days for the "last 24 hours".
+		 */
+		if (ts < limit) {
+			prev_up = up;
+			prev_down = down;
+			prev_ts = ts;
+			continue;
+		}
+
+		/* a bucket written twice (the collector was restarted) */
+		if (prev_ts == ts) {
+			prev_up = up;
+			prev_down = down;
+			continue;
+		}
+
 		if (prev_up != null) {
 			let d_up = up - prev_up;
 			let d_down = down - prev_down;
@@ -144,7 +165,8 @@ function build_series(range) {
 			up_total += d_up;
 			down_total += d_down;
 
-			push(points, { ts: ts, up: d_up, down: d_down });
+			/* the counters were read at the end of the interval */
+			push(points, { ts: prev_ts, up: d_up, down: d_down });
 		}
 
 		prev_up = up;
@@ -154,8 +176,8 @@ function build_series(range) {
 
 	/* the newest interval is still running, add it as a partial step */
 	if (prev_up != null) {
-		let cur_up = 0;
-		let cur_down = 0;
+		let cur_up = prev_up;
+		let cur_down = prev_down;
 		let live = read_json(LIVE_FILE);
 
 		if (live != null && live.wan != null) {
@@ -163,12 +185,13 @@ function build_series(range) {
 			cur_down = to_num(live.wan.down_bytes);
 		}
 
-		if (cur_up > prev_up || cur_down > prev_down) {
-			let d_up = cur_up - prev_up;
-			let d_down = cur_down - prev_down;
+		if (cur_up != prev_up || cur_down != prev_down) {
+			let d_up = (cur_up > prev_up) ? cur_up - prev_up : 0;
+			let d_down = (cur_down > prev_down) ? cur_down - prev_down : 0;
 
-			if (d_up > 0) {
+			if (d_up > 0 || d_down > 0) {
 				up_total += d_up;
+				down_total += d_down;
 				push(points, { ts: prev_ts + def.step, up: d_up, down: d_down });
 			}
 		}
@@ -192,6 +215,18 @@ function build_devices(range) {
 	let rows = read_tsv(file);
 	let limit = now() - def.seconds;
 	let map = {};
+	let live = read_json(LIVE_FILE);
+	let known = {};
+
+	/* the history does not store the name, take it from the live state */
+	if (live != null) {
+		for (let i = 0; i < length(live.devices ?? []); i++) {
+			let d = live.devices[i];
+
+			if (d?.mac)
+				known[d.mac] = d;
+		}
+	}
 
 	for (let i = 0; i < length(rows); i++) {
 		let f = rows[i];
@@ -209,6 +244,9 @@ function build_devices(range) {
 		let up = to_num(f[3]);
 		let down = to_num(f[4]);
 
+		if (ip == '0.0.0.0')
+			ip = '';
+
 		if (!map[mac])
 			map[mac] = { mac: mac, ip: ip, up: 0, down: 0 };
 
@@ -221,8 +259,19 @@ function build_devices(range) {
 
 	let list = [];
 
-	for (let mac in map)
+	for (let mac in map) {
+		let d = known[mac];
+
+		if (d != null) {
+			if (d.name != null && d.name != '')
+				map[mac].name = d.name;
+
+			if (d.ip != null && d.ip != '')
+				map[mac].ip = d.ip;
+		}
+
 		push(list, map[mac]);
+	}
 
 	sort(list, function(a, b) {
 		return (b.up + b.down) - (a.up + a.down);
@@ -236,7 +285,7 @@ function build_devices(range) {
  */
 function build_destinations(range) {
 	let def = RANGES[normalise_range(range)];
-	let rows = read_tsv(HISTORY_DIR + '/dest_days.tsv');
+	let rows = read_tsv(HISTORY_DIR + '/' + def.dests);
 	let limit = now() - def.seconds;
 	let map = {};
 
@@ -292,7 +341,7 @@ function config_get() {
 	result.wan_interfaces = c.get(CONFIG_NAME, 'global', 'wan_interfaces') ?? [];
 	result.stats_iface = c.get(CONFIG_NAME, 'global', 'stats_iface') ?? '';
 	result.sample_interval = to_num(c.get(CONFIG_NAME, 'global', 'sample_interval') ?? 1);
-	result.dns_ttl = to_num(c.get(CONFIG_NAME, 'global', 'dns_ttl') ?? 300);
+	result.dns_ttl = to_num(c.get(CONFIG_NAME, 'global', 'dns_ttl') ?? 86400);
 	result.count_internal = (c.get(CONFIG_NAME, 'global', 'count_internal') ?? '0') == '1';
 	result.alias = c.get(CONFIG_NAME, 'global', 'alias') ?? [];
 
@@ -369,7 +418,9 @@ const methods = {
 			 * is stuck and needs to be restarted.
 			 */
 			let service = collector_service();
-			let fresh = (live != null && (now() - (+live.ts ?? 0)) <= 8);
+			let interval = to_num(live?.interval ?? 5);
+			// a slow sampling interval must not look like a stuck collector
+			let fresh = (live != null && (now() - (+live.ts ?? 0)) <= (interval * 2 + 5));
 
 			if (fresh)
 				result.collector = 'running';
@@ -436,15 +487,15 @@ const methods = {
 						}
 
 						if (found != null) {
-							found.up = to_num(d.up);
-							found.down = to_num(d.down);
+							found.up += to_num(d.up_h);
+							found.down += to_num(d.down_h);
 							found.name = d.name;
 							found.ip = d.ip;
 							found.up_rate = d.up_rate;
 							found.down_rate = d.down_rate;
 							found.live = true;
 						} else {
-							push(hist, { mac: d.mac, ip: d.ip, name: d.name, up: to_num(d.up), down: to_num(d.down), up_rate: to_num(d.up_rate), down_rate: to_num(d.down_rate), live: true });
+							push(hist, { mac: d.mac, ip: d.ip, name: d.name, up: to_num(d.up_h), down: to_num(d.down_h), up_rate: to_num(d.up_rate), down_rate: to_num(d.down_rate), live: true });
 						}
 					}
 				}
@@ -470,9 +521,17 @@ const methods = {
 			let result = { range: range, destinations: [], domains: [] };
 			let list = build_destinations(range);
 
-			if (live != null && range == '24h') {
+			/*
+			 * The history ends at the last completed step, the traffic
+			 * since then is added from the live state. The live counters
+			 * themselves are cumulative since the collector started and
+			 * must not be used as an interval value.
+			 */
+			if (live != null && (range == '24h' || range == '7d')) {
 				for (let i = 0; i < length(live.destinations ?? []); i++) {
 					let d = live.destinations[i];
+					let up_h = to_num(d.up_h);
+					let down_h = to_num(d.down_h);
 					let found = null;
 
 					for (let j = 0; j < length(list); j++) {
@@ -483,13 +542,16 @@ const methods = {
 					}
 
 					if (found != null) {
-						found.up = to_num(d.up);
-						found.down = to_num(d.down);
-						found.domain = d.domain;
+						found.up += up_h;
+						found.down += down_h;
+
+						if ((found.domain == null || found.domain == '') && d.domain != null)
+							found.domain = d.domain;
+
 						found.up_rate = to_num(d.up_rate);
 						found.down_rate = to_num(d.down_rate);
-					} else {
-						push(list, { ip: d.ip, domain: d.domain, up: to_num(d.up), down: to_num(d.down), up_rate: to_num(d.up_rate), down_rate: to_num(d.down_rate) });
+					} else if (up_h + down_h > 0) {
+						push(list, { ip: d.ip, domain: d.domain, up: up_h, down: down_h, up_rate: to_num(d.up_rate), down_rate: to_num(d.down_rate) });
 					}
 				}
 

@@ -186,7 +186,9 @@ msgstr ""
 
 #: htdocs/luci-static/resources/view/traffic-stats/main.js:511
 msgid ""
-"Number of seconds a learned domain name is kept before it is looked up again."
+"Number of seconds a learned domain name is remembered. Longer values label "
+"more traffic with a name, the name is replaced as soon as the address is "
+"resolved again."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/traffic-stats/main.js:358

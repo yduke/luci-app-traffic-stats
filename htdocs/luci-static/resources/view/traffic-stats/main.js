@@ -508,8 +508,8 @@ return view.extend({
 			opt.datatype = 'range(1,60)';
 
 			opt = section.option(form.Value, 'dns_ttl', _('Domain cache lifetime'),
-				_('Number of seconds a learned domain name is kept before it is looked up again.'));
-			opt.default = '300';
+				_('Number of seconds a learned domain name is remembered. Longer values label more traffic with a name, the name is replaced as soon as the address is resolved again.'));
+			opt.default = '86400';
 			opt.datatype = 'range(10,86400)';
 
 			opt = section.option(form.Flag, 'count_internal', _('Count internal traffic'),

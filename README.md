@@ -51,18 +51,18 @@ the router:
 
 | File | Package manager | Content |
 | ---- | --------------- | ------- |
-| `luci-app-traffic-stats_1.0.1-r1_aarch64_cortex-a53.ipk` | opkg | the application with the Chinese translation |
-| `luci-app-traffic-stats-1.0.1-r1.apk` | apk | the application with the Chinese translation |
+| `luci-app-traffic-stats_1.0.2-r1_aarch64_cortex-a53.ipk` | opkg | the application with the Chinese translation |
+| `luci-app-traffic-stats-1.0.2-r1.apk` | apk | the application with the Chinese translation |
 
 The `.ipk` and the `.apk` contain exactly the same files, they only differ
 in the container format. Install the one that matches the router.
 
 ```sh
 # opkg based routers (OpenWrt up to 25.12 with opkg, most vendor builds)
-opkg install luci-app-traffic-stats_1.0.1-r1_aarch64_cortex-a53.ipk
+opkg install luci-app-traffic-stats_1.0.2-r1_aarch64_cortex-a53.ipk
 
 # apk based routers (OpenWrt 25.12 and newer)
-apk add luci-app-traffic-stats-1.0.1-r1.apk
+apk add luci-app-traffic-stats-1.0.2-r1.apk
 ```
 
 ### Language

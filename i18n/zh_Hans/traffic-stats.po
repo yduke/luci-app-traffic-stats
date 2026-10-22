@@ -191,8 +191,8 @@ msgid "Number of days the daily statistics are kept on the flash memory."
 msgstr "每日统计在闪存中保留的天数。"
 
 #: htdocs/luci-static/resources/view/traffic-stats/main.js:511
-msgid "Number of seconds a learned domain name is kept before it is looked up again."
-msgstr "已学习到的域名在重新查询前的保留时间，单位为秒。"
+msgid "Number of seconds a learned domain name is remembered. Longer values label more traffic with a name, the name is replaced as soon as the address is resolved again."
+msgstr "学到的域名保留的秒数。数值越大，越多流量能标注出域名；该地址再次被解析时会立即更新域名。"
 
 #: htdocs/luci-static/resources/view/traffic-stats/main.js:358
 msgid "Overview"

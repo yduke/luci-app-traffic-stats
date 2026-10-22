@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-traffic-stats
-PKG_VERSION:=1.0.1
+PKG_VERSION:=1.0.2
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL-2.0-only
@@ -48,6 +48,8 @@ define Package/$(PKG_NAME)/postinst
 	chmod 0755 /etc/uci-defaults/40_traffic-stats 2>/dev/null
 	mkdir -p /var/lib/traffic-stats
 	mkdir -p /etc/traffic-stats
+	# older versions stored the addresses as decimal numbers
+	sh /usr/libexec/traffic-stats/migrate-history.sh /etc/traffic-stats
 	/etc/init.d/traffic-stats enable
 	/etc/init.d/traffic-stats restart
 	/etc/init.d/rpcd reload

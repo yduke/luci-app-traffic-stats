@@ -72,14 +72,6 @@ static int cmp_dom(const void *a, const void *b)
 	return 0;
 }
 
-static void fmt_ip(uint32_t ip, char *buf, size_t len)
-{
-	struct in_addr a;
-
-	a.s_addr = ip;
-	snprintf(buf, len, "%s", inet_ntoa(a));
-}
-
 static void json_escape(FILE *fp, const char *s)
 {
 	fputc('"', fp);
@@ -118,9 +110,10 @@ int write_snapshot(struct state *st, const char *path)
 {
 	char tmp[256];
 	FILE *fp;
-	struct dev_ref devs[MAX_REPORT_DEVICES];
-	struct dst_ref dsts[MAX_REPORT_DESTS];
-	struct dom_ref doms[MAX_REPORT_DOMAINS];
+	/* every table entry is ranked before the report is cut down */
+	static struct dev_ref devs[MAX_DEVICES];
+	static struct dst_ref dsts[MAX_DESTINATIONS];
+	static struct dom_ref doms[MAX_REPORT_DOMAINS];
 	int ndev = 0, ndst = 0, ndom = 0;
 	int i, j;
 	uint64_t dev_up = 0, dev_down = 0;
@@ -133,20 +126,26 @@ int write_snapshot(struct state *st, const char *path)
 	if (fp == NULL)
 		return -1;
 
-	/* devices */
-	for (i = 0; i < MAX_DEVICES && ndev < MAX_REPORT_DEVICES; i++) {
+	/* devices, the table order must not decide who is reported */
+	for (i = 0; i < MAX_DEVICES; i++) {
 		if (!st->devices[i].used)
 			continue;
 		if (st->devices[i].up == 0 && st->devices[i].down == 0 &&
 		    st->devices[i].up_int == 0 && st->devices[i].down_int == 0)
 			continue;
+
+		dev_up += st->devices[i].up;
+		dev_down += st->devices[i].down;
 		devs[ndev].dev = &st->devices[i];
 		ndev++;
 	}
 	qsort(devs, ndev, sizeof(devs[0]), cmp_dev);
 
+	if (ndev > MAX_REPORT_DEVICES)
+		ndev = MAX_REPORT_DEVICES;
+
 	/* destinations */
-	for (i = 0; i < MAX_DESTINATIONS && ndst < MAX_REPORT_DESTS; i++) {
+	for (i = 0; i < MAX_DESTINATIONS; i++) {
 		struct dns_entry *e;
 
 		if (!st->dests[i].used)
@@ -161,7 +160,7 @@ int write_snapshot(struct state *st, const char *path)
 	}
 	qsort(dsts, ndst, sizeof(dsts[0]), cmp_dst);
 
-	/* domains */
+	/* domains, the summary uses every destination */
 	for (i = 0; i < ndst; i++) {
 		const char *dom = dsts[i].domain;
 
@@ -185,12 +184,10 @@ int write_snapshot(struct state *st, const char *path)
 	}
 	qsort(doms, ndom, sizeof(doms[0]), cmp_dom);
 
-	for (i = 0; i < ndev; i++) {
-		dev_up += devs[i].dev->up;
-		dev_down += devs[i].dev->down;
-	}
+	if (ndst > MAX_REPORT_DESTS)
+		ndst = MAX_REPORT_DESTS;
 
-	if (st->cfg.wan_count > 0) {
+	if (capture_wan_active()) {
 		up = st->wan_up;
 		down = st->wan_down;
 	} else {
@@ -234,7 +231,7 @@ int write_snapshot(struct state *st, const char *path)
 		device_name(st, d->mac, d->ip, name, sizeof(name));
 
 		if (d->ip != 0)
-			fmt_ip(d->ip, ipbuf, sizeof(ipbuf));
+			ts_fmt_ip(d->ip, ipbuf, sizeof(ipbuf));
 		else
 			ipbuf[0] = '\0';
 
@@ -247,6 +244,9 @@ int write_snapshot(struct state *st, const char *path)
 		json_escape(fp, name);
 		fprintf(fp, ", \"up\": %llu, \"down\": %llu",
 			(unsigned long long)d->up, (unsigned long long)d->down);
+		fprintf(fp, ", \"up_h\": %llu, \"down_h\": %llu",
+			(unsigned long long)(d->up - d->up_prev_h),
+			(unsigned long long)(d->down - d->down_prev_h));
 		fprintf(fp, ", \"up_rate\": %llu, \"down_rate\": %llu",
 			(unsigned long long)d->up_rate, (unsigned long long)d->down_rate);
 		fprintf(fp, ", \"internal_up\": %llu, \"internal_down\": %llu",
@@ -257,7 +257,7 @@ int write_snapshot(struct state *st, const char *path)
 
 	fprintf(fp, "  \"destinations\": [");
 	for (i = 0; i < ndst; i++) {
-		fmt_ip(dsts[i].dst->ip, ipbuf, sizeof(ipbuf));
+		ts_fmt_ip(dsts[i].dst->ip, ipbuf, sizeof(ipbuf));
 
 		fprintf(fp, "%s\n    {", (i > 0) ? "," : "");
 		fprintf(fp, "\"ip\": ");
@@ -269,6 +269,9 @@ int write_snapshot(struct state *st, const char *path)
 			fprintf(fp, "null");
 		fprintf(fp, ", \"up\": %llu, \"down\": %llu",
 			(unsigned long long)dsts[i].dst->up, (unsigned long long)dsts[i].dst->down);
+		fprintf(fp, ", \"up_h\": %llu, \"down_h\": %llu",
+			(unsigned long long)(dsts[i].dst->up - dsts[i].dst->up_prev_h),
+			(unsigned long long)(dsts[i].dst->down - dsts[i].dst->down_prev_h));
 		fprintf(fp, ", \"up_pkts\": %llu, \"down_pkts\": %llu",
 			(unsigned long long)dsts[i].dst->up_pkts,
 			(unsigned long long)dsts[i].dst->down_pkts);

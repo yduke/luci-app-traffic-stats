@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#define TS_VERSION "1.0.1"
+#define TS_VERSION "1.0.2"
 
 #define MAX_IFACES      8
 #define MAX_ALIASES     64
@@ -24,6 +24,9 @@
 #define MAX_DESTINATIONS 8192
 #define MAX_DNS_ENTRIES 4096
 #define MAX_HISTORY_IFACES 8
+
+/* seconds the main thread waits for the state lock */
+#define TS_LOCK_TIMEOUT 5
 
 /* capture roles */
 #define ROLE_LAN 0
@@ -54,7 +57,9 @@ struct destination {
 	uint64_t up_pkts;         /* packets sent to this peer */
 	uint64_t down_pkts;       /* packets received from this peer */
 	uint64_t up_prev, down_prev;
+	uint64_t up_prev_h, down_prev_h;
 	uint64_t up_prev_d, down_prev_d;
+	uint64_t up_pkts_prev_h, down_pkts_prev_h;
 	uint64_t up_pkts_prev_d, down_pkts_prev_d;
 	uint64_t up_rate, down_rate;
 	time_t   last;
@@ -135,6 +140,8 @@ struct state {
 int  capture_open(struct state *st);
 void capture_run(struct state *st);
 void capture_close(struct state *st);
+void capture_read_stats(struct state *st);
+int  capture_wan_active(void);
 
 /* hash.c */
 void  devices_init(struct state *st);
@@ -165,8 +172,10 @@ int  write_snapshot(struct state *st, const char *path);
 
 /* util.c */
 uint32_t ts_now(void);
+void     ts_fmt_ip(uint32_t ip, char *buf, size_t len);
 void     ts_set_ifnames(struct state *st);
 int      ts_load_config(struct state *st);
 void     ts_log(const char *fmt, ...);
+void     ts_log_err(const char *fmt, ...);
 
 #endif /* TS_H */

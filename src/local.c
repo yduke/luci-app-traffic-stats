@@ -52,16 +52,82 @@ static struct lease leases[MAX_LEASES];
 static int lease_count;
 static time_t lease_mtime;
 
+static void add_local_mac(const uint8_t *mac)
+{
+	int i;
+
+	for (i = 0; i < localmac_count; i++)
+		if (memcmp(localmacs[i].mac, mac, 6) == 0)
+			return;
+
+	if (localmac_count < MAX_PREFIXES) {
+		memcpy(localmacs[localmac_count].mac, mac, 6);
+		localmac_count++;
+	}
+}
+
+/*
+ * The prefix length of an IPv6 address is not available through
+ * getifaddrs(), SIOCGIFNETMASK only knows IPv4. Reading it from
+ * /proc/net/if_inet6 matters: a /128 instead of the real /64 makes every
+ * device address look like an internet peer, which silently dropped the
+ * whole IPv6 traffic of the network.
+ */
+static void load_prefixes6(void)
+{
+	FILE *fp;
+	char line[256];
+
+	prefix6_count = 0;
+
+	fp = fopen("/proc/net/if_inet6", "r");
+	if (fp == NULL)
+		return;
+
+	while (fgets(line, sizeof(line), fp) != NULL && prefix6_count < MAX_PREFIXES) {
+		char addr[40];
+		unsigned int idx, bits, scope, flags;
+		int i, ok = 1;
+
+		if (sscanf(line, "%39s %x %x %x %x", addr, &idx, &bits, &scope, &flags) != 5)
+			continue;
+
+		if (strlen(addr) != 32 || bits > 128)
+			continue;
+
+		for (i = 0; i < 16; i++) {
+			char hex[3] = { addr[i * 2], addr[i * 2 + 1], 0 };
+			unsigned int byte;
+
+			if (sscanf(hex, "%x", &byte) != 1) {
+				ok = 0;
+				break;
+			}
+
+			prefixes6[prefix6_count].addr[i] = (uint8_t)byte;
+		}
+
+		if (!ok)
+			continue;
+
+		prefixes6[prefix6_count].bits = (int)bits;
+		prefix6_count++;
+	}
+
+	fclose(fp);
+}
+
 int local_init(struct state *st)
 {
 	struct ifaddrs *ifa, *p;
 	int n = 0;
-	int n6 = 0;
 	int sock;
 
 	(void)st;
 
 	prefix_count = 0;
+	prefix6_count = 0;
+	localmac_count = 0;
 
 	if (getifaddrs(&ifa) != 0)
 		return -1;
@@ -73,69 +139,23 @@ int local_init(struct state *st)
 		uint32_t mask = 0xffffffffu;
 
 		/* remember the hardware address of the local interfaces */
-		if (sock >= 0 && localmac_count < MAX_PREFIXES) {
+		if (sock >= 0) {
 			struct ifreq ifr;
 
 			memset(&ifr, 0, sizeof(ifr));
 			snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), "%s", p->ifa_name);
 
 			if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0) {
-				memcpy(localmacs[localmac_count].mac, ifr.ifr_hwaddr.sa_data, 6);
-				localmac_count++;
+				const uint8_t *hw = (const uint8_t *)ifr.ifr_hwaddr.sa_data;
+
+				/* the loopback interface has no real address */
+				if (hw[0] | hw[1] | hw[2] | hw[3] | hw[4] | hw[5])
+					add_local_mac(hw);
 			}
 		}
 
 		if (p->ifa_addr == NULL)
 			continue;
-
-		if (p->ifa_addr->sa_family == AF_INET6) {
-			struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)p->ifa_addr;
-			int bits = 64;
-
-			if (n6 >= MAX_PREFIXES)
-				continue;
-			if (!(p->ifa_flags & IFF_UP))
-				continue;
-
-			if (sock >= 0) {
-				struct ifreq ifr;
-
-				memset(&ifr, 0, sizeof(ifr));
-				snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), "%s", p->ifa_name);
-
-				if (ioctl(sock, SIOCGIFNETMASK, &ifr) == 0) {
-					struct sockaddr_in6 *m6 = (struct sockaddr_in6 *)&ifr.ifr_netmask;
-					int b;
-
-					for (b = 0; b < 16; b++) {
-						uint8_t v = ((const uint8_t *)&m6->sin6_addr)[b];
-						int ones = 0;
-						int k;
-
-						if (v == 0xff) {
-							bits = (b + 1) * 8;
-							continue;
-						}
-
-						for (k = 7; k >= 0; k--) {
-							if (v & (1 << k))
-								ones++;
-							else
-								break;
-						}
-
-						bits = b * 8 + ones;
-						break;
-					}
-				}
-			}
-
-			memcpy(prefixes6[n6].addr, &sin6->sin6_addr, 16);
-			prefixes6[n6].bits = (bits > 0) ? bits : 128;
-			n6++;
-			continue;
-		}
-
 		if (p->ifa_addr->sa_family != AF_INET)
 			continue;
 		if (!(p->ifa_flags & IFF_UP))
@@ -162,8 +182,9 @@ int local_init(struct state *st)
 		close(sock);
 
 	freeifaddrs(ifa);
+
 	prefix_count = n;
-	prefix6_count = n6;
+	load_prefixes6();
 
 	if (st->cfg.verbose) {
 		int i;
@@ -188,6 +209,10 @@ int is_local6(struct state *st, const uint8_t *addr)
 	int i;
 
 	(void)st;
+
+	/* ff00::/8 is multicast, it never leaves the local network */
+	if (addr[0] == 0xff)
+		return 1;
 
 	for (i = 0; i < prefix6_count; i++) {
 		int bits = prefixes6[i].bits;
@@ -224,6 +249,18 @@ int is_local4(struct state *st, uint32_t ip)
 	int i;
 
 	(void)st;
+
+	/*
+	 * Multicast, broadcast and the unspecified address are never an
+	 * internet peer. The LAN side sees a lot of them (mDNS, SSDP,
+	 * DHCP, IGMP) and they belong to the internal traffic, otherwise a
+	 * quiet device would look like it uploads to the internet.
+	 */
+	if (ip == 0 || ip == 0xffffffffu)
+		return 1;
+
+	if ((ntohl(ip) & 0xf0000000u) == 0xe0000000u)   /* 224.0.0.0/4 */
+		return 1;
 
 	for (i = 0; i < prefix_count; i++) {
 		if ((ip & prefixes[i].mask) == (prefixes[i].addr & prefixes[i].mask))
