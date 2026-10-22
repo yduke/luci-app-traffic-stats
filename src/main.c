@@ -199,6 +199,7 @@ int main(int argc, char **argv)
 
 	while (keep_running) {
 		struct timespec sleep_time;
+		struct timespec lock_timeout;
 		time_t now;
 		unsigned int dt;
 
@@ -219,7 +220,19 @@ int main(int argc, char **argv)
 		if (dt == 0)
 			dt = 1;
 
-		pthread_mutex_lock(&st->lock);
+		/*
+		 * A timeout keeps the daemon responsive, a collector that
+		 * cannot write its snapshots is a broken collector.
+		 */
+		lock_timeout.tv_sec = 10;
+		lock_timeout.tv_nsec = 0;
+
+		if (pthread_mutex_timedlock(&st->lock, &lock_timeout) != 0) {
+			ts_log("timeout while writing the snapshot, the collector is overloaded");
+			last_tick = now;
+			continue;
+		}
+
 		read_net_counters(st);
 		update_rates(st, dt);
 		dns_expire(st);
@@ -234,6 +247,12 @@ int main(int argc, char **argv)
 	pthread_mutex_lock(&st->lock);
 	write_snapshot(st, snapshot);
 	pthread_mutex_unlock(&st->lock);
+
+	/*
+	 * Remove the state file, a collector that is not running must not
+	 * leave a state file behind that looks current.
+	 */
+	unlink(snapshot);
 
 	capture_close(st);
 	pthread_mutex_destroy(&st->lock);

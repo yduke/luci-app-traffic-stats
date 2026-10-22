@@ -20,6 +20,7 @@
 #include <poll.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -359,17 +360,56 @@ static void handle_frame(struct state *st, struct cap_socket *cs, unsigned char 
 	}
 }
 
+/*
+ * The packets are collected first and accounted with a single lock. If the
+ * lock was taken for every single packet, a busy network would starve the
+ * main thread that writes the snapshots.
+ */
+#define PKT_BATCH_MAX 64
+#define PKT_BATCH_BUF 9216
+
+struct pkt_batch_entry {
+	uint8_t buf[PKT_BATCH_BUF];
+	int captured;   /* the number of bytes received */
+	int stored;     /* the number of bytes kept for the analysis */
+	int sock;       /* the index of the interface the packet came from */
+};
+
+/* account the collected packets, one lock for the whole batch */
+static void account_batch(struct state *st, struct pkt_batch_entry *batch, int nbatch)
+{
+	int i;
+
+	pthread_mutex_lock(&st->lock);
+
+	for (i = 0; i < nbatch; i++) {
+		st->packets++;
+		st->bytes += (uint64_t)batch[i].captured;
+		handle_frame(st, &socks[batch[i].sock], batch[i].buf, batch[i].stored);
+	}
+
+	pthread_mutex_unlock(&st->lock);
+}
+
 static void *capture_thread(void *arg)
 {
 	struct state *st = arg;
 	struct pollfd pfd[MAX_IFACES * 2];
+	struct pkt_batch_entry *batch;
 	unsigned char buf[65536];
 	int i;
+
+	batch = calloc(PKT_BATCH_MAX, sizeof(*batch));
+	if (batch == NULL) {
+		ts_log("cannot allocate the packet batch");
+		return NULL;
+	}
 
 	capture_running = 1;
 
 	while (!capture_stop) {
-		int n = 0, rc;
+		int n = 0, rc, nbatch = 0;
+		unsigned long errors = 0;
 
 		for (i = 0; i < sock_count; i++) {
 			pfd[n].fd = socks[i].fd;
@@ -381,36 +421,63 @@ static void *capture_thread(void *arg)
 		if (n == 0)
 			break;
 
-		rc = poll(pfd, n, 500);
+		rc = poll(pfd, n, 200);
 		if (rc < 0) {
 			if (errno == EINTR)
 				continue;
 			break;
 		}
 
-		for (i = 0; i < n && rc > 0; i++) {
-			ssize_t len;
-
+		/*
+		 * Collect the pending packets, this needs no lock. The socket
+		 * has to be drained completely, a burst of packets would
+		 * overflow the receive buffer and the statistics would lose
+		 * them.
+		 */
+		for (i = 0; i < n; i++) {
 			if (!(pfd[i].revents & POLLIN))
 				continue;
 
-			len = recv(socks[i].fd, buf, sizeof(buf), 0);
-			if (len <= 0) {
-				if (len < 0 && (errno == EAGAIN || errno == EINTR))
-					continue;
-				pthread_mutex_lock(&st->lock);
-				st->errors++;
-				pthread_mutex_unlock(&st->lock);
-				continue;
-			}
+			for (;;) {
+				ssize_t len = recv(socks[i].fd, buf, sizeof(buf), MSG_DONTWAIT);
 
+				if (len <= 0) {
+					if (len < 0 && errno == EINTR)
+						continue;
+					if (len < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+						errors++;
+					break;
+				}
+
+				batch[nbatch].captured = (int)len;
+				batch[nbatch].stored = (len > PKT_BATCH_BUF) ? PKT_BATCH_BUF : (int)len;
+				batch[nbatch].sock = i;
+				memcpy(batch[nbatch].buf, buf, batch[nbatch].stored);
+				nbatch++;
+
+				/*
+				 * Account the collected packets with a single
+				 * lock, otherwise the main thread is starved
+				 * by a busy network.
+				 */
+				if (nbatch >= PKT_BATCH_MAX) {
+					account_batch(st, batch, nbatch);
+					nbatch = 0;
+				}
+			}
+		}
+
+		if (nbatch > 0)
+			account_batch(st, batch, nbatch);
+
+		if (errors > 0) {
 			pthread_mutex_lock(&st->lock);
-			st->packets++;
-			st->bytes += (uint64_t)len;
-			handle_frame(st, &socks[i], buf, len);
+			st->errors += errors;
 			pthread_mutex_unlock(&st->lock);
 		}
 	}
+
+	free(batch);
 
 	capture_running = 0;
 

@@ -58,7 +58,7 @@ var callNetworkDevices = rpc.declare({
 	expect: { '': {} }
 });
 
-var APP_VERSION = '1.0.0';
+var APP_VERSION = '1.0.1';
 
 var POLL_INTERVAL = 2;
 var POLL_IDLE_INTERVAL = 15;
@@ -557,7 +557,11 @@ return view.extend({
 						/* the state is known before the next poll */
 						collectorState = (action == 'stop') ? 'stopped' : 'running';
 						renderCollectorButtons();
-						refreshOverview();
+
+						/* give the collector a moment to write its state */
+						window.setTimeout(function() {
+							refreshOverview();
+						}, 2500);
 					}).catch(function(err) {
 						button.removeAttribute('disabled');
 						setError(err);
@@ -611,6 +615,9 @@ return view.extend({
 					'cbi-button-action', 'restart'));
 				collectorButtons.appendChild(collectorButton(_('Stop collector'),
 					'cbi-button', 'stop'));
+			} else if (collectorState == 'unresponsive') {
+				collectorButtons.appendChild(collectorButton(_('Restart collector'),
+					'cbi-button-action', 'restart'));
 			} else {
 				collectorButtons.appendChild(collectorButton(_('Start collector'),
 					'cbi-button-action', 'start'));
@@ -778,7 +785,9 @@ return view.extend({
 			));
 
 			statusText.textContent = (collectorState == 'running')
-				? _('Collector running') : _('Collector stopped');
+				? _('Collector running')
+				: (collectorState == 'unresponsive')
+					? _('Collector is not responding') : _('Collector stopped');
 			infoBox.textContent = _('Uptime') + ': ' + formatUptime(live.uptime) + '  ·  ' +
 				_('Interface') + ': ' + ((live.interfaces && live.interfaces.lan) || []).join(', ');
 		}

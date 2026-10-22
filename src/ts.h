@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#define TS_VERSION "1.0.0"
+#define TS_VERSION "1.0.1"
 
 #define MAX_IFACES      8
 #define MAX_ALIASES     64

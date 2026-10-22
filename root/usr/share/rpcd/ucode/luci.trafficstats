@@ -23,6 +23,7 @@
 
 import { access, readfile, popen } from 'fs';
 import { cursor } from 'uci';
+import * as ubus from 'ubus';
 
 const CONFIG_NAME = 'traffic-stats';
 const RUNTIME_DIR = '/var/lib/traffic-stats';
@@ -316,15 +317,66 @@ function service_control(action) {
 	return { result: 0, action: action, output: output };
 }
 
+/*
+ * Check whether the collector service is running. A collector that is
+ * running but does not update its state file is stuck and needs a restart.
+ */
+function collector_service() {
+	let res;
+
+	try {
+		res = ubus.call('service', 'list', { name: 'traffic-stats' });
+	} catch (e) {
+		return 'unknown';
+	}
+
+	if (type(res) != 'object')
+		return 'unknown';
+
+	for (let name in res) {
+		let instances = res[name]?.instances;
+
+		if (type(instances) != 'object')
+			continue;
+
+		for (let id in instances) {
+			let instance = instances[id];
+			let pid = instance?.pid;
+
+			if (!instance?.running)
+				continue;
+
+			/* the instance can be left over, check the process */
+			if (pid != null && !access(sprintf('/proc/%d', pid), 'f'))
+				continue;
+
+			return 'running';
+		}
+	}
+
+	return 'stopped';
+}
+
 const methods = {
 	overview: {
 		call: function(request) {
 			let live = read_json(LIVE_FILE);
 			let result = {};
 
-			/* the collector is running when the state file is up to date */
-			result.collector = (live != null && (now() - (+live.ts ?? 0)) <= 8)
-				? 'running' : 'stopped';
+			/*
+			 * The collector is running when its state file is up to
+			 * date. A running collector with an outdated state file
+			 * is stuck and needs to be restarted.
+			 */
+			let service = collector_service();
+			let fresh = (live != null && (now() - (+live.ts ?? 0)) <= 8);
+
+			if (fresh)
+				result.collector = 'running';
+			else if (service == 'running')
+				result.collector = 'unresponsive';
+			else
+				result.collector = 'stopped';
 
 			if (live == null) {
 				result.available = false;

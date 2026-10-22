@@ -24,6 +24,7 @@ TRANSLATIONS = {
     "Collected packets": "已收集数据包",
     "Collector": "采集器",
     "Collector is not running": "采集器未运行",
+    "Collector is not responding": "采集器无响应",
     "Collector running": "采集器运行中",
     "Comma separated list of the interfaces that face the internet. They provide "
     "the total traffic volume and the destination statistics.":
